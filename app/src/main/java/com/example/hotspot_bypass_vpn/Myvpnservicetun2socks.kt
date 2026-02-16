@@ -20,14 +20,17 @@ class MyVpnServiceTun2Socks : VpnService() {
 
     companion object {
         const val ACTION_STOP = "com.example.hotspot_bypass_vpn.STOP"
+        var isServiceRunning = false // ADD THIS
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
+            isServiceRunning = false // SET FALSE
             DebugUtils.log("Stop Action Received via Intent")
             shutdownService()
             return START_NOT_STICKY
         }
+        isServiceRunning = true // SET TRUE
 
         if (isRunning) {
             DebugUtils.log("Service already running - resetting connections")
@@ -205,7 +208,7 @@ class MyVpnServiceTun2Socks : VpnService() {
 
     override fun onDestroy() {
         DebugUtils.log("CRITICAL: Executing Stop Sequence...")
-        isRunning = false
+        isServiceRunning = false // SET FALSE
 
         // 1. FORCIBLY close the VPN Interface first
         // This tells the Android OS to immediately remove the VPN routes

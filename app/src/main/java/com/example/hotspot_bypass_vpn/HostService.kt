@@ -21,6 +21,10 @@ class HostService : Service() {
     private lateinit var p2pChannel: WifiP2pManager.Channel
     private var preferredBand = 1 // 1 for 2.4GHz, 2 for 5GHz
 
+    companion object {
+        var isServiceRunning = false
+    }
+
     override fun onCreate() {
         super.onCreate()
         p2pManager = getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager
@@ -29,9 +33,11 @@ class HostService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == "STOP") {
+            isServiceRunning = false
             stopGroupAndService()
             return START_NOT_STICKY
         }
+        isServiceRunning = true
 
         // Get the band preference from MainActivity
         preferredBand = intent?.getIntExtra("WIFI_BAND", 1) ?: 1
@@ -155,6 +161,7 @@ class HostService : Service() {
     override fun onDestroy() {
         wakeLock?.let { if (it.isHeld) it.release() }
         wifiLock?.let { if (it.isHeld) it.release() }
+        isServiceRunning = false
         super.onDestroy()
     }
 
