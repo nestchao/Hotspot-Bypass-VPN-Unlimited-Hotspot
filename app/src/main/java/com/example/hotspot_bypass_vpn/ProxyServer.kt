@@ -155,42 +155,82 @@ class ProxyServer {
             val targetPort = ((portBytes[0].toInt() and 0xFF) shl 8) or (portBytes[1].toInt() and 0xFF)
 
             val targetSocket = Socket()
+            targetSocket.soTimeout = 30000 // 30 second timeout
+            targetSocket.tcpNoDelay = true
+            targetSocket.keepAlive = true
+
             try {
-                targetSocket.connect(InetSocketAddress(targetHost, targetPort), 10000)
+                // ADD: Better timeout handling
+                targetSocket.connect(InetSocketAddress(targetHost, targetPort), 15000)
+
+                Log.d("ProxyServer", "[$clientId] ✓ Connected to $targetHost:$targetPort")
 
                 val response = byteArrayOf(0x05, 0x00, 0x00, 0x01, 0, 0, 0, 0, 0, 0)
                 output.write(response)
                 output.flush()
 
                 val latch = CountDownLatch(2)
-                thread(isDaemon = true) {
-                    try { pipeOptimized(input, targetSocket.getOutputStream()) }
-                    finally { latch.countDown() }
+
+                // Client -> Target
+                thread(isDaemon = true, name = "Proxy-C2T-$clientId") {
+                    try {
+                        pipeOptimized(input, targetSocket.getOutputStream(), clientId, "C->T")
+                    } catch (e: Exception) {
+                        Log.d("ProxyServer", "[$clientId] C->T pipe closed: ${e.message}")
+                    } finally {
+                        latch.countDown()
+                        try { targetSocket.shutdownOutput() } catch (e: Exception) {}
+                    }
                 }
-                thread(isDaemon = true) {
-                    try { pipeOptimized(targetSocket.getInputStream(), output) }
-                    finally { latch.countDown() }
+
+                // Target -> Client
+                thread(isDaemon = true, name = "Proxy-T2C-$clientId") {
+                    try {
+                        pipeOptimized(targetSocket.getInputStream(), output, clientId, "T->C")
+                    } catch (e: Exception) {
+                        Log.d("ProxyServer", "[$clientId] T->C pipe closed: ${e.message}")
+                    } finally {
+                        latch.countDown()
+                        try { client.shutdownOutput() } catch (e: Exception) {}
+                    }
                 }
-                latch.await(120, TimeUnit.SECONDS)
+
+                latch.await(180, TimeUnit.SECONDS) // Increase timeout to 3 minutes
+
             } catch (e: Exception) {
+                Log.e("ProxyServer", "[$clientId] Connection failed: ${e.message}")
+                // Send connection refused response
+                try {
+                    output.write(byteArrayOf(0x05, 0x05.toByte(), 0x00, 0x01, 0, 0, 0, 0, 0, 0))
+                    output.flush()
+                } catch (ex: Exception) {}
             } finally {
                 try { targetSocket.close() } catch (e: Exception) {}
             }
         } catch (e: Exception) {
+            Log.e("ProxyServer", "[$clientId] Error: ${e.message}", e)
         } finally {
             try { client.close() } catch (e: Exception) {}
             activeConnections.decrementAndGet()
+            Log.d("ProxyServer", "[$clientId] Connection closed (Active: ${activeConnections.get()})")
         }
     }
 
-    private fun pipeOptimized(ins: InputStream, out: OutputStream) {
+    private fun pipeOptimized(ins: InputStream, out: OutputStream, clientId: String = "", direction: String = "") {
         val buffer = ByteArray(32768)
+        var totalBytes = 0
         try {
             var len: Int
             while (ins.read(buffer).also { len = it } != -1) {
                 out.write(buffer, 0, len)
                 out.flush()
+                totalBytes += len
             }
-        } catch (e: Exception) {}
+            if (direction.isNotEmpty()) {
+                Log.d("ProxyServer", "[$clientId] $direction transferred ${totalBytes / 1024}KB")
+            }
+        } catch (e: Exception) {
+            // Normal closure
+        }
     }
 }

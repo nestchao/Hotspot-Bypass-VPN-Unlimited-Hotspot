@@ -19,6 +19,14 @@ class DnsCache {
 
     private val cache = ConcurrentHashMap<String, CacheEntry>()
 
+    fun invalidate(domain: String) {
+        cache.remove(domain)
+    }
+
+    fun invalidateAll() {
+        cache.clear()
+    }
+
     // Pre-populate with common domains
     init {
         // These will be resolved on first use, then cached

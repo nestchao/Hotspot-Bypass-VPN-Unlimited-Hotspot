@@ -41,6 +41,7 @@ import android.net.wifi.p2p.WifiP2pManager
 import android.net.Uri
 import android.os.PowerManager
 import androidx.compose.ui.platform.LocalContext
+import kotlin.concurrent.thread
 
 data class HostInfo(
     val ssid: String,
@@ -320,6 +321,39 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                         Text("STOP VPN", fontWeight = FontWeight.Bold)
                     }
                 }
+            }
+        }
+
+        if (isClientRunning.value) {
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = { handleReconnectVPN() },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Refresh, null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("RECONNECT VPN")
+            }
+        }
+    }
+
+    private fun handleReconnectVPN() {
+        logState.add("Reconnecting VPN...")
+
+        // 1. Stop current VPN
+        val stopIntent = Intent(this, MyVpnServiceTun2Socks::class.java).apply {
+            action = MyVpnServiceTun2Socks.ACTION_STOP
+        }
+        startService(stopIntent)
+
+        // 2. Restart after a brief delay to allow clean socket closure
+        thread {
+            Thread.sleep(2000)
+            runOnUiThread {
+                val ip = clientIp.value
+                val port = clientPort.value.toIntOrNull() ?: 8080
+                startVpnService(ip, port)
+                logState.add("VPN reconnected")
             }
         }
     }
