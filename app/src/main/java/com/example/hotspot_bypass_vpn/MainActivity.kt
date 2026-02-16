@@ -2,6 +2,7 @@ package com.example.hotspot_bypass_vpn
 
 import android.Manifest
 import android.content.*
+import android.content.pm.PackageManager
 import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
@@ -40,7 +41,7 @@ import android.net.wifi.p2p.WifiP2pInfo
 import android.net.wifi.p2p.WifiP2pManager
 import android.net.Uri
 import android.os.PowerManager
-import androidx.compose.ui.platform.LocalContext
+import kotlin.concurrent.thread
 
 data class HostInfo(
     val ssid: String,
@@ -166,7 +167,6 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // CONFLICT WARNING: If Client is running, disable Host
         if (isClientRunning.value) {
             ConflictCard(message = "VPN Client is currently active. You cannot share while connected to another proxy.")
         }
@@ -204,7 +204,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                         onClick = { handleStartHost() },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
-                        enabled = !isClientRunning.value // DISABLE IF CLIENT RUNNING
+                        enabled = !isClientRunning.value
                     ) {
                         Text("START SHARING", fontWeight = FontWeight.Bold)
                     }
@@ -221,7 +221,6 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
             }
         }
 
-        // Show group info if active
         AnimatedVisibility(visible = hostInfoState.value != null) {
             hostInfoState.value?.let { info ->
                 Spacer(modifier = Modifier.height(16.dp))
@@ -258,7 +257,6 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // CONFLICT WARNING: If Host is running, disable Client
         if (isHostRunning.value) {
             ConflictCard(message = "Hotspot Sharing is currently active. You cannot start a VPN while sharing your own connection.")
         }
@@ -302,7 +300,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
                         shape = RoundedCornerShape(8.dp),
-                        enabled = !isHostRunning.value // DISABLE IF HOST RUNNING
+                        enabled = !isHostRunning.value
                     ) {
                         Icon(Icons.Default.PlayArrow, null)
                         Spacer(modifier = Modifier.width(8.dp))
@@ -320,6 +318,30 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                         Text("STOP VPN", fontWeight = FontWeight.Bold)
                     }
                 }
+            }
+        }
+
+        if (isClientRunning.value) {
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButton(onClick = { handleReconnectVPN() }, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.Refresh, null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("RECONNECT VPN")
+            }
+        }
+    }
+
+    private fun handleReconnectVPN() {
+        logState.add("Reconnecting VPN...")
+        val stopIntent = Intent(this, MyVpnServiceTun2Socks::class.java).apply {
+            action = MyVpnServiceTun2Socks.ACTION_STOP
+        }
+        startService(stopIntent)
+        thread {
+            Thread.sleep(2000)
+            runOnUiThread {
+                startVpnService(clientIp.value, clientPort.value.toIntOrNull() ?: 8080)
+                logState.add("VPN reconnected")
             }
         }
     }
@@ -362,9 +384,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                 ) {
                     Icon(icon, null, tint = if (isActive) Color.White else Color.Gray, modifier = Modifier.size(28.dp))
                 }
-
                 Spacer(modifier = Modifier.width(16.dp))
-
                 Column {
                     Text(title, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.Black)
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -386,33 +406,19 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
     @Composable
     fun DebugLogSection() {
         var showLogs by remember { mutableStateOf(false) }
-
         Column(modifier = Modifier.fillMaxWidth()) {
-            TextButton(
-                onClick = { showLogs = !showLogs },
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            ) {
+            TextButton(onClick = { showLogs = !showLogs }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
                 Icon(if (showLogs) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, null)
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(if (showLogs) "Hide Debug Logs" else "Show Debug Logs")
             }
-
             AnimatedVisibility(visible = showLogs) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .background(Color(0xFF1E1E1E), RoundedCornerShape(12.dp))
-                        .padding(12.dp)
+                    modifier = Modifier.fillMaxWidth().height(200.dp).background(Color(0xFF1E1E1E), RoundedCornerShape(12.dp)).padding(12.dp)
                 ) {
                     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                         logState.asReversed().forEach { logLine ->
-                            Text(
-                                text = "➜ $logLine",
-                                fontSize = 11.sp,
-                                fontFamily = FontFamily.Monospace,
-                                color = Color(0xFF00E676)
-                            )
+                            Text(text = "➜ $logLine", fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = Color(0xFF00E676))
                         }
                     }
                 }
@@ -423,10 +429,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
     @Composable
     fun InfoRow(label: String, value: String) {
         val clipboardManager = LocalClipboardManager.current
-        Row(
-            modifier = Modifier.padding(vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(label.uppercase(), fontSize = 10.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
                 Text(value, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = Color.DarkGray)
@@ -449,9 +452,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                 requestIgnoreBatteryOptimizations()
                 return
             }
-            val intent = Intent(this, HostService::class.java).apply {
-                putExtra("WIFI_BAND", selectedBand.intValue)
-            }
+            val intent = Intent(this, HostService::class.java).apply { putExtra("WIFI_BAND", selectedBand.intValue) }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 startForegroundService(intent)
             } else {
@@ -477,22 +478,17 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                 navigateToPrivateDnsSettings()
                 return
             }
-            val ip = clientIp.value
-            val port = clientPort.value.toIntOrNull() ?: 8080
-            prepareVpn(ip, port)
+            prepareVpn(clientIp.value, clientPort.value.toIntOrNull() ?: 8080)
         }
     }
 
     private fun handleStopClient() {
-        val intent = Intent(this, MyVpnServiceTun2Socks::class.java).apply {
-            action = MyVpnServiceTun2Socks.ACTION_STOP
-        }
+        val intent = Intent(this, MyVpnServiceTun2Socks::class.java).apply { action = MyVpnServiceTun2Socks.ACTION_STOP }
         startService(intent)
         isClientRunning.value = false
         logState.add("VPN Client Stopped.")
     }
 
-    // Existing helper methods below (unchanged logic, just ensuring state sync)
     private fun startVpnService(ip: String, port: Int) {
         val intent = Intent(this, MyVpnServiceTun2Socks::class.java).apply {
             putExtra("PROXY_IP", ip)
@@ -584,6 +580,9 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
         receiver = WiFiDirectBroadcastReceiver(manager, channel, this)
         registerReceiver(receiver, intentFilter)
         ContextCompat.registerReceiver(this, logReceiver, IntentFilter("VPN_LOG"), ContextCompat.RECEIVER_NOT_EXPORTED)
+
+        // SYNC STATES ON RESUME
+        syncServiceStates()
     }
 
     override fun onPause() {
@@ -599,11 +598,40 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
     }
 
     private fun navigateToPrivateDnsSettings() {
-        val intent = Intent(Settings.ACTION_SETTINGS)
         try {
             startActivity(Intent("android.settings.DNS_SETTINGS"))
         } catch (e: Exception) {
-            startActivity(intent)
+            startActivity(Intent(Settings.ACTION_SETTINGS))
+        }
+    }
+
+    private fun syncServiceStates() {
+        // 1. Sync VPN Client state (Static variable check)
+        isClientRunning.value = MyVpnServiceTun2Socks.isServiceRunning
+
+        // 2. Sync Host state with Permission Check
+        val fineLocation = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+        val nearbyDevices = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.NEARBY_WIFI_DEVICES)
+        } else {
+            PackageManager.PERMISSION_GRANTED
+        }
+
+        if (fineLocation == PackageManager.PERMISSION_GRANTED && nearbyDevices == PackageManager.PERMISSION_GRANTED) {
+            try {
+                manager.requestGroupInfo(channel) { group ->
+                    if (group != null) {
+                        isHostRunning.value = true
+                        updateGroupInfo(group)
+                    } else {
+                        // Only set false if we're sure no group exists
+                        if (isHostRunning.value) isHostRunning.value = false
+                    }
+                }
+                manager.requestConnectionInfo(channel, this)
+            } catch (e: SecurityException) {
+                logState.add("Sync error: Permission denied")
+            }
         }
     }
 }

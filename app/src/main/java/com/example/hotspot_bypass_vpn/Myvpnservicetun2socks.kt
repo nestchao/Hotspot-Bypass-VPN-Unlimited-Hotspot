@@ -20,14 +20,23 @@ class MyVpnServiceTun2Socks : VpnService() {
 
     companion object {
         const val ACTION_STOP = "com.example.hotspot_bypass_vpn.STOP"
+        var isServiceRunning = false // ADD THIS
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
+            isServiceRunning = false // SET FALSE
             DebugUtils.log("Stop Action Received via Intent")
             shutdownService()
             return START_NOT_STICKY
         }
+        isServiceRunning = true // SET TRUE
+
+        if (isRunning) {
+            DebugUtils.log("Service already running - resetting connections")
+            resetConnections()
+        }
+
         proxyIp = intent?.getStringExtra("PROXY_IP") ?: "192.168.49.1"
         proxyPort = intent?.getIntExtra("PROXY_PORT", 8080) ?: 8080
 
@@ -43,6 +52,18 @@ class MyVpnServiceTun2Socks : VpnService() {
         }
 
         return START_STICKY
+    }
+
+    private fun resetConnections() {
+        try {
+            Engine.stop()
+            Thread.sleep(500)
+            vpnInterface?.close()
+            vpnInterface = null
+            DebugUtils.log("✓ Connections reset")
+        } catch (e: Exception) {
+            DebugUtils.error("Error resetting connections", e)
+        }
     }
 
     private fun shutdownService() {
@@ -68,15 +89,22 @@ class MyVpnServiceTun2Socks : VpnService() {
 
     private fun startVpnWithTun2Socks() {
         try {
+            vpnInterface?.close()
+            vpnInterface = null
+            Thread.sleep(500)
+
+            DebugUtils.log("Setting up fresh VPN interface...")
+
             DebugUtils.log("Setting up VPN interface...")
 
             val builder = Builder()
                 .setMtu(1500)
                 .addAddress("10.0.0.2", 24)
                 .addRoute("0.0.0.0", 0)
+                .addRoute("::", 0)  // Route all IPv6
                 .addDisallowedApplication(packageName)
                 .addDnsServer("8.8.8.8")
-                .addDnsServer("8.8.4.4")
+                .addDnsServer("1.1.1.1")
                 .setSession("Hotspot Bypass VPN")
                 .setBlocking(true)
 
@@ -180,7 +208,7 @@ class MyVpnServiceTun2Socks : VpnService() {
 
     override fun onDestroy() {
         DebugUtils.log("CRITICAL: Executing Stop Sequence...")
-        isRunning = false
+        isServiceRunning = false // SET FALSE
 
         // 1. FORCIBLY close the VPN Interface first
         // This tells the Android OS to immediately remove the VPN routes
