@@ -44,7 +44,7 @@ class ProxyServer {
             try {
                 serverSocket = ServerSocket()
                 serverSocket?.reuseAddress = true
-                serverSocket?.receiveBufferSize = 131072
+                serverSocket?.receiveBufferSize = 262144
 
                 val bindAddress = InetSocketAddress("0.0.0.0", PORT)
                 serverSocket?.bind(bindAddress, 200)
@@ -328,180 +328,119 @@ class ProxyServer {
 
     inner class UdpAssociation(
         private val clientId: String,
-        private val socket: DatagramSocket,
+        private val relaySocket: DatagramSocket, // This is the socket the client sends to
         private val clientAddress: String
     ) {
         @Volatile var lastActivity = System.currentTimeMillis()
         private var isRunning = true
 
-        fun start() {
-            thread(isDaemon = true, name = "UDP-Relay-$clientId") {
-                val buffer = ByteArray(65536)
-                socket.soTimeout = 5000 // 5 second timeout for receive
+        // Maps TargetAddress -> Socket used to talk to that target
+        private val targetSockets = ConcurrentHashMap<String, DatagramSocket>()
 
+        init {
+            relaySocket.receiveBufferSize = 128 * 1024 // 128KB
+            relaySocket.sendBufferSize = 128 * 1024
+        }
+
+        fun start() {
+            thread(isDaemon = true, name = "UDP-Main-$clientId") {
+                val buffer = ByteArray(4096) // Large enough for any Roblox packet
                 while (isRunning) {
                     try {
                         val packet = DatagramPacket(buffer, buffer.size)
-                        socket.receive(packet)
+                        relaySocket.receive(packet)
                         lastActivity = System.currentTimeMillis()
 
-                        // Parse SOCKS5 UDP header
                         val data = packet.data
-                        var offset = 0
-
-                        // Skip RSV (2 bytes) and FRAG (1 byte)
-                        offset += 3
-
+                        // SOCKS5 UDP Header: RSV(2) FRAG(1) ATYP(1) DST.ADDR(var) DST.PORT(2)
+                        var offset = 3
                         val atyp = data[offset].toInt() and 0xFF
                         offset++
 
-                        var targetHost = ""
-                        when (atyp) {
+                        val targetHost = when (atyp) {
                             1 -> { // IPv4
-                                targetHost = "${data[offset].toInt() and 0xFF}.${data[offset+1].toInt() and 0xFF}." +
+                                val host = "${data[offset].toInt() and 0xFF}.${data[offset+1].toInt() and 0xFF}." +
                                         "${data[offset+2].toInt() and 0xFF}.${data[offset+3].toInt() and 0xFF}"
                                 offset += 4
+                                host
                             }
                             3 -> { // Domain
                                 val len = data[offset].toInt() and 0xFF
                                 offset++
-                                targetHost = String(data, offset, len)
+                                val host = String(data, offset, len)
                                 offset += len
+                                host
                             }
-                            4 -> { // IPv6
-                                val ipBytes = data.copyOfRange(offset, offset + 16)
-                                targetHost = InetAddress.getByAddress(ipBytes).hostAddress ?: ""
-                                offset += 16
-                            }
+                            else -> continue
                         }
 
                         val targetPort = ((data[offset].toInt() and 0xFF) shl 8) or (data[offset+1].toInt() and 0xFF)
                         offset += 2
 
-                        // Extract actual UDP payload
                         val payloadSize = packet.length - offset
-                        val payload = data.copyOfRange(offset, offset + payloadSize)
+                        if (payloadSize <= 0) continue
+                        val payload = data.copyOfRange(offset, packet.length)
 
-                        // Forward to target
-                        try {
-                            val targetAddress = InetAddress.getByName(targetHost)
-                            val forwardPacket = DatagramPacket(payload, payload.size, targetAddress, targetPort)
-                            socket.send(forwardPacket)
-
-                            Log.d("ProxyServer", "[$clientId] UDP -> $targetHost:$targetPort (${payload.size} bytes)")
-
-                            // Start receiver for responses
-                            receiveAndRelay(targetHost, targetPort, packet.address, packet.port)
-
-                        } catch (e: Exception) {
-                            Log.e("ProxyServer", "[$clientId] UDP forward error: ${e.message}")
+                        // Get or create a dedicated socket for this specific target
+                        val targetKey = "$targetHost:$targetPort"
+                        val socketToTarget = targetSockets.getOrPut(targetKey) {
+                            val s = DatagramSocket()
+                            s.soTimeout = 10000
+                            // Start a listener for responses FROM this target
+                            startResponseListener(s, targetHost, targetPort, packet.address, packet.port)
+                            s
                         }
 
-                    } catch (e: SocketTimeoutException) {
-                        // Normal timeout, check if should continue
-                        if (System.currentTimeMillis() - lastActivity > 60000) {
-                            Log.d("ProxyServer", "[$clientId] UDP relay timeout")
-                            break
-                        }
+                        val sendPacket = DatagramPacket(payload, payload.size, InetAddress.getByName(targetHost), targetPort)
+                        socketToTarget.send(sendPacket)
+
                     } catch (e: Exception) {
-                        if (isRunning) {
-                            Log.e("ProxyServer", "[$clientId] UDP receive error: ${e.message}")
-                        }
-                        break
+                        if (isRunning) break
                     }
                 }
-
                 close()
             }
         }
 
-        private fun receiveAndRelay(
-            originalHost: String,
-            originalPort: Int,
-            clientAddr: InetAddress,
-            clientPort: Int
-        ) {
-            thread(isDaemon = true, name = "UDP-Receiver-$clientId-$originalPort") {
-                val recvSocket = DatagramSocket()
-                recvSocket.soTimeout = 10000 // 10 second timeout
-
+        private fun startResponseListener(socket: DatagramSocket, host: String, port: Int, clientAddr: InetAddress, clientPort: Int) {
+            thread(isDaemon = true, name = "UDP-Resp-$port") {
+                val buffer = ByteArray(4096)
                 try {
-                    val buffer = ByteArray(65536)
-                    val packet = DatagramPacket(buffer, buffer.size)
-
                     while (isRunning) {
-                        try {
-                            recvSocket.receive(packet)
-                            lastActivity = System.currentTimeMillis()
+                        val packet = DatagramPacket(buffer, buffer.size)
+                        socket.receive(packet)
 
-                            // Build SOCKS5 UDP header
-                            val responseData = buildUdpResponsePacket(
-                                originalHost,
-                                originalPort,
-                                packet.data.copyOf(packet.length)
-                            )
+                        // Build SOCKS5 UDP Header for the response
+                        val header = buildUdpHeader(host, port)
+                        val combined = header + packet.data.copyOf(packet.length)
 
-                            // Send back to client
-                            val responsePacket = DatagramPacket(
-                                responseData,
-                                responseData.size,
-                                clientAddr,
-                                clientPort
-                            )
-                            socket.send(responsePacket)
-
-                            Log.d("ProxyServer", "[$clientId] UDP <- $originalHost:$originalPort (${packet.length} bytes)")
-
-                        } catch (e: SocketTimeoutException) {
-                            break // No more responses
-                        } catch (e: Exception) {
-                            if (isRunning) {
-                                Log.e("ProxyServer", "[$clientId] UDP response error: ${e.message}")
-                            }
-                            break
-                        }
+                        val response = DatagramPacket(combined, combined.size, clientAddr, clientPort)
+                        relaySocket.send(response)
+                        lastActivity = System.currentTimeMillis()
                     }
-                } finally {
-                    recvSocket.close()
+                } catch (e: Exception) {
+                    targetSockets.remove("$host:$port")
+                    try { socket.close() } catch (ex: Exception) {}
                 }
             }
         }
 
-        private fun buildUdpResponsePacket(host: String, port: Int, payload: ByteArray): ByteArray {
-            val header = mutableListOf<Byte>()
-
-            // RSV (2 bytes)
-            header.add(0x00)
-            header.add(0x00)
-
-            // FRAG
-            header.add(0x00)
-
-            // ATYP and Address
-            if (host.matches(Regex("\\d+\\.\\d+\\.\\d+\\.\\d+"))) {
-                // IPv4
-                header.add(0x01)
-                host.split(".").forEach { header.add(it.toInt().toByte()) }
-            } else {
-                // Domain
-                header.add(0x03)
-                header.add(host.length.toByte())
-                host.toByteArray().forEach { header.add(it) }
-            }
-
-            // Port
-            header.add((port shr 8).toByte())
-            header.add((port and 0xFF).toByte())
-
-            // Combine header + payload
-            return header.toByteArray() + payload
+        private fun buildUdpHeader(host: String, port: Int): ByteArray {
+            val addr = InetAddress.getByName(host).address
+            val header = ByteArray(4 + addr.size + 2)
+            header[0] = 0; header[1] = 0; header[2] = 0 // RSV + FRAG
+            header[3] = 1 // ATYP IPv4
+            System.arraycopy(addr, 0, header, 4, addr.size)
+            header[header.size - 2] = (port shr 8).toByte()
+            header[header.size - 1] = (port and 0xFF).toByte()
+            return header
         }
 
         fun close() {
             isRunning = false
-            try {
-                socket.close()
-            } catch (e: Exception) {}
+            targetSockets.values.forEach { try { it.close() } catch (e: Exception) {} }
+            targetSockets.clear()
+            try { relaySocket.close() } catch (e: Exception) {}
         }
     }
 }

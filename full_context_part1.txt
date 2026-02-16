@@ -376,6 +376,10 @@ class HostService : Service() {
     private lateinit var p2pChannel: WifiP2pManager.Channel
     private var preferredBand = 1 // 1 for 2.4GHz, 2 for 5GHz
 
+    companion object {
+        var isServiceRunning = false
+    }
+
     override fun onCreate() {
         super.onCreate()
         p2pManager = getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager
@@ -384,9 +388,11 @@ class HostService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == "STOP") {
+            isServiceRunning = false
             stopGroupAndService()
             return START_NOT_STICKY
         }
+        isServiceRunning = true
 
         // Get the band preference from MainActivity
         preferredBand = intent?.getIntExtra("WIFI_BAND", 1) ?: 1
@@ -510,6 +516,7 @@ class HostService : Service() {
     override fun onDestroy() {
         wakeLock?.let { if (it.isHeld) it.release() }
         wifiLock?.let { if (it.isHeld) it.release() }
+        isServiceRunning = false
         super.onDestroy()
     }
 
@@ -524,6 +531,7 @@ package com.example.hotspot_bypass_vpn
 
 import android.Manifest
 import android.content.*
+import android.content.pm.PackageManager
 import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
@@ -562,7 +570,6 @@ import android.net.wifi.p2p.WifiP2pInfo
 import android.net.wifi.p2p.WifiP2pManager
 import android.net.Uri
 import android.os.PowerManager
-import androidx.compose.ui.platform.LocalContext
 import kotlin.concurrent.thread
 
 data class HostInfo(
@@ -689,7 +696,6 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // CONFLICT WARNING: If Client is running, disable Host
         if (isClientRunning.value) {
             ConflictCard(message = "VPN Client is currently active. You cannot share while connected to another proxy.")
         }
@@ -727,7 +733,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                         onClick = { handleStartHost() },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
-                        enabled = !isClientRunning.value // DISABLE IF CLIENT RUNNING
+                        enabled = !isClientRunning.value
                     ) {
                         Text("START SHARING", fontWeight = FontWeight.Bold)
                     }
@@ -744,7 +750,6 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
             }
         }
 
-        // Show group info if active
         AnimatedVisibility(visible = hostInfoState.value != null) {
             hostInfoState.value?.let { info ->
                 Spacer(modifier = Modifier.height(16.dp))
@@ -781,7 +786,6 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // CONFLICT WARNING: If Host is running, disable Client
         if (isHostRunning.value) {
             ConflictCard(message = "Hotspot Sharing is currently active. You cannot start a VPN while sharing your own connection.")
         }
@@ -825,7 +829,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
                         shape = RoundedCornerShape(8.dp),
-                        enabled = !isHostRunning.value // DISABLE IF HOST RUNNING
+                        enabled = !isHostRunning.value
                     ) {
                         Icon(Icons.Default.PlayArrow, null)
                         Spacer(modifier = Modifier.width(8.dp))
@@ -848,10 +852,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
 
         if (isClientRunning.value) {
             Spacer(modifier = Modifier.height(8.dp))
-            OutlinedButton(
-                onClick = { handleReconnectVPN() },
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            OutlinedButton(onClick = { handleReconnectVPN() }, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Default.Refresh, null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("RECONNECT VPN")
@@ -861,20 +862,14 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
 
     private fun handleReconnectVPN() {
         logState.add("Reconnecting VPN...")
-
-        // 1. Stop current VPN
         val stopIntent = Intent(this, MyVpnServiceTun2Socks::class.java).apply {
             action = MyVpnServiceTun2Socks.ACTION_STOP
         }
         startService(stopIntent)
-
-        // 2. Restart after a brief delay to allow clean socket closure
         thread {
             Thread.sleep(2000)
             runOnUiThread {
-                val ip = clientIp.value
-                val port = clientPort.value.toIntOrNull() ?: 8080
-                startVpnService(ip, port)
+                startVpnService(clientIp.value, clientPort.value.toIntOrNull() ?: 8080)
                 logState.add("VPN reconnected")
             }
         }
@@ -918,9 +913,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                 ) {
                     Icon(icon, null, tint = if (isActive) Color.White else Color.Gray, modifier = Modifier.size(28.dp))
                 }
-
                 Spacer(modifier = Modifier.width(16.dp))
-
                 Column {
                     Text(title, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.Black)
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -942,33 +935,19 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
     @Composable
     fun DebugLogSection() {
         var showLogs by remember { mutableStateOf(false) }
-
         Column(modifier = Modifier.fillMaxWidth()) {
-            TextButton(
-                onClick = { showLogs = !showLogs },
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            ) {
+            TextButton(onClick = { showLogs = !showLogs }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
                 Icon(if (showLogs) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, null)
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(if (showLogs) "Hide Debug Logs" else "Show Debug Logs")
             }
-
             AnimatedVisibility(visible = showLogs) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .background(Color(0xFF1E1E1E), RoundedCornerShape(12.dp))
-                        .padding(12.dp)
+                    modifier = Modifier.fillMaxWidth().height(200.dp).background(Color(0xFF1E1E1E), RoundedCornerShape(12.dp)).padding(12.dp)
                 ) {
                     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                         logState.asReversed().forEach { logLine ->
-                            Text(
-                                text = "➜ $logLine",
-                                fontSize = 11.sp,
-                                fontFamily = FontFamily.Monospace,
-                                color = Color(0xFF00E676)
-                            )
+                            Text(text = "➜ $logLine", fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = Color(0xFF00E676))
                         }
                     }
                 }
@@ -979,10 +958,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
     @Composable
     fun InfoRow(label: String, value: String) {
         val clipboardManager = LocalClipboardManager.current
-        Row(
-            modifier = Modifier.padding(vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(label.uppercase(), fontSize = 10.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
                 Text(value, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = Color.DarkGray)
@@ -1005,9 +981,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                 requestIgnoreBatteryOptimizations()
                 return
             }
-            val intent = Intent(this, HostService::class.java).apply {
-                putExtra("WIFI_BAND", selectedBand.intValue)
-            }
+            val intent = Intent(this, HostService::class.java).apply { putExtra("WIFI_BAND", selectedBand.intValue) }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 startForegroundService(intent)
             } else {
@@ -1033,22 +1007,17 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                 navigateToPrivateDnsSettings()
                 return
             }
-            val ip = clientIp.value
-            val port = clientPort.value.toIntOrNull() ?: 8080
-            prepareVpn(ip, port)
+            prepareVpn(clientIp.value, clientPort.value.toIntOrNull() ?: 8080)
         }
     }
 
     private fun handleStopClient() {
-        val intent = Intent(this, MyVpnServiceTun2Socks::class.java).apply {
-            action = MyVpnServiceTun2Socks.ACTION_STOP
-        }
+        val intent = Intent(this, MyVpnServiceTun2Socks::class.java).apply { action = MyVpnServiceTun2Socks.ACTION_STOP }
         startService(intent)
         isClientRunning.value = false
         logState.add("VPN Client Stopped.")
     }
 
-    // Existing helper methods below (unchanged logic, just ensuring state sync)
     private fun startVpnService(ip: String, port: Int) {
         val intent = Intent(this, MyVpnServiceTun2Socks::class.java).apply {
             putExtra("PROXY_IP", ip)
@@ -1140,6 +1109,9 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
         receiver = WiFiDirectBroadcastReceiver(manager, channel, this)
         registerReceiver(receiver, intentFilter)
         ContextCompat.registerReceiver(this, logReceiver, IntentFilter("VPN_LOG"), ContextCompat.RECEIVER_NOT_EXPORTED)
+
+        // SYNC STATES ON RESUME
+        syncServiceStates()
     }
 
     override fun onPause() {
@@ -1155,11 +1127,40 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
     }
 
     private fun navigateToPrivateDnsSettings() {
-        val intent = Intent(Settings.ACTION_SETTINGS)
         try {
             startActivity(Intent("android.settings.DNS_SETTINGS"))
         } catch (e: Exception) {
-            startActivity(intent)
+            startActivity(Intent(Settings.ACTION_SETTINGS))
+        }
+    }
+
+    private fun syncServiceStates() {
+        // 1. Sync VPN Client state (Static variable check)
+        isClientRunning.value = MyVpnServiceTun2Socks.isServiceRunning
+
+        // 2. Sync Host state with Permission Check
+        val fineLocation = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+        val nearbyDevices = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.NEARBY_WIFI_DEVICES)
+        } else {
+            PackageManager.PERMISSION_GRANTED
+        }
+
+        if (fineLocation == PackageManager.PERMISSION_GRANTED && nearbyDevices == PackageManager.PERMISSION_GRANTED) {
+            try {
+                manager.requestGroupInfo(channel) { group ->
+                    if (group != null) {
+                        isHostRunning.value = true
+                        updateGroupInfo(group)
+                    } else {
+                        // Only set false if we're sure no group exists
+                        if (isHostRunning.value) isHostRunning.value = false
+                    }
+                }
+                manager.requestConnectionInfo(channel, this)
+            } catch (e: SecurityException) {
+                logState.add("Sync error: Permission denied")
+            }
         }
     }
 }
@@ -2584,14 +2585,17 @@ class MyVpnServiceTun2Socks : VpnService() {
 
     companion object {
         const val ACTION_STOP = "com.example.hotspot_bypass_vpn.STOP"
+        var isServiceRunning = false // ADD THIS
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
+            isServiceRunning = false // SET FALSE
             DebugUtils.log("Stop Action Received via Intent")
             shutdownService()
             return START_NOT_STICKY
         }
+        isServiceRunning = true // SET TRUE
 
         if (isRunning) {
             DebugUtils.log("Service already running - resetting connections")
@@ -2659,15 +2663,15 @@ class MyVpnServiceTun2Socks : VpnService() {
             DebugUtils.log("Setting up VPN interface...")
 
             val builder = Builder()
-                .setMtu(1500)
+                .setMtu(1350) // LOWER MTU: 1350 is the "sweet spot" for gaming over proxies
                 .addAddress("10.0.0.2", 24)
-                .addRoute("0.0.0.0", 0)
-                .addRoute("::", 0)  // Route all IPv6
+                .addRoute("0.0.0.0", 0) // Route EVERYTHING
+                // .addRoute("::", 0) // Uncomment if you want to block IPv6 leaks
                 .addDisallowedApplication(packageName)
                 .addDnsServer("8.8.8.8")
                 .addDnsServer("1.1.1.1")
                 .setSession("Hotspot Bypass VPN")
-                .setBlocking(true)
+                .setBlocking(true) // Crucial for gaming stability
 
             vpnInterface = builder.establish()
 
@@ -2709,7 +2713,7 @@ class MyVpnServiceTun2Socks : VpnService() {
             // Note: The device must be "fd://<number>" for Android
             key.setDevice("fd://$fd")
             key.setProxy(socksProxy)
-            key.setMTU(1500L)
+            key.setMTU(1420L)
             key.setLogLevel("info")
 
             // Optional: Some versions allow setting DNS here,
@@ -2769,7 +2773,7 @@ class MyVpnServiceTun2Socks : VpnService() {
 
     override fun onDestroy() {
         DebugUtils.log("CRITICAL: Executing Stop Sequence...")
-        isRunning = false
+        isServiceRunning = false // SET FALSE
 
         // 1. FORCIBLY close the VPN Interface first
         // This tells the Android OS to immediately remove the VPN routes
@@ -2870,7 +2874,7 @@ class ProxyServer {
             try {
                 serverSocket = ServerSocket()
                 serverSocket?.reuseAddress = true
-                serverSocket?.receiveBufferSize = 131072
+                serverSocket?.receiveBufferSize = 262144
 
                 val bindAddress = InetSocketAddress("0.0.0.0", PORT)
                 serverSocket?.bind(bindAddress, 200)
@@ -3154,180 +3158,119 @@ class ProxyServer {
 
     inner class UdpAssociation(
         private val clientId: String,
-        private val socket: DatagramSocket,
+        private val relaySocket: DatagramSocket, // This is the socket the client sends to
         private val clientAddress: String
     ) {
         @Volatile var lastActivity = System.currentTimeMillis()
         private var isRunning = true
 
-        fun start() {
-            thread(isDaemon = true, name = "UDP-Relay-$clientId") {
-                val buffer = ByteArray(65536)
-                socket.soTimeout = 5000 // 5 second timeout for receive
+        // Maps TargetAddress -> Socket used to talk to that target
+        private val targetSockets = ConcurrentHashMap<String, DatagramSocket>()
 
+        init {
+            relaySocket.receiveBufferSize = 128 * 1024 // 128KB
+            relaySocket.sendBufferSize = 128 * 1024
+        }
+
+        fun start() {
+            thread(isDaemon = true, name = "UDP-Main-$clientId") {
+                val buffer = ByteArray(4096) // Large enough for any Roblox packet
                 while (isRunning) {
                     try {
                         val packet = DatagramPacket(buffer, buffer.size)
-                        socket.receive(packet)
+                        relaySocket.receive(packet)
                         lastActivity = System.currentTimeMillis()
 
-                        // Parse SOCKS5 UDP header
                         val data = packet.data
-                        var offset = 0
-
-                        // Skip RSV (2 bytes) and FRAG (1 byte)
-                        offset += 3
-
+                        // SOCKS5 UDP Header: RSV(2) FRAG(1) ATYP(1) DST.ADDR(var) DST.PORT(2)
+                        var offset = 3
                         val atyp = data[offset].toInt() and 0xFF
                         offset++
 
-                        var targetHost = ""
-                        when (atyp) {
+                        val targetHost = when (atyp) {
                             1 -> { // IPv4
-                                targetHost = "${data[offset].toInt() and 0xFF}.${data[offset+1].toInt() and 0xFF}." +
+                                val host = "${data[offset].toInt() and 0xFF}.${data[offset+1].toInt() and 0xFF}." +
                                         "${data[offset+2].toInt() and 0xFF}.${data[offset+3].toInt() and 0xFF}"
                                 offset += 4
+                                host
                             }
                             3 -> { // Domain
                                 val len = data[offset].toInt() and 0xFF
                                 offset++
-                                targetHost = String(data, offset, len)
+                                val host = String(data, offset, len)
                                 offset += len
+                                host
                             }
-                            4 -> { // IPv6
-                                val ipBytes = data.copyOfRange(offset, offset + 16)
-                                targetHost = InetAddress.getByAddress(ipBytes).hostAddress ?: ""
-                                offset += 16
-                            }
+                            else -> continue
                         }
 
                         val targetPort = ((data[offset].toInt() and 0xFF) shl 8) or (data[offset+1].toInt() and 0xFF)
                         offset += 2
 
-                        // Extract actual UDP payload
                         val payloadSize = packet.length - offset
-                        val payload = data.copyOfRange(offset, offset + payloadSize)
+                        if (payloadSize <= 0) continue
+                        val payload = data.copyOfRange(offset, packet.length)
 
-                        // Forward to target
-                        try {
-                            val targetAddress = InetAddress.getByName(targetHost)
-                            val forwardPacket = DatagramPacket(payload, payload.size, targetAddress, targetPort)
-                            socket.send(forwardPacket)
-
-                            Log.d("ProxyServer", "[$clientId] UDP -> $targetHost:$targetPort (${payload.size} bytes)")
-
-                            // Start receiver for responses
-                            receiveAndRelay(targetHost, targetPort, packet.address, packet.port)
-
-                        } catch (e: Exception) {
-                            Log.e("ProxyServer", "[$clientId] UDP forward error: ${e.message}")
+                        // Get or create a dedicated socket for this specific target
+                        val targetKey = "$targetHost:$targetPort"
+                        val socketToTarget = targetSockets.getOrPut(targetKey) {
+                            val s = DatagramSocket()
+                            s.soTimeout = 10000
+                            // Start a listener for responses FROM this target
+                            startResponseListener(s, targetHost, targetPort, packet.address, packet.port)
+                            s
                         }
 
-                    } catch (e: SocketTimeoutException) {
-                        // Normal timeout, check if should continue
-                        if (System.currentTimeMillis() - lastActivity > 60000) {
-                            Log.d("ProxyServer", "[$clientId] UDP relay timeout")
-                            break
-                        }
+                        val sendPacket = DatagramPacket(payload, payload.size, InetAddress.getByName(targetHost), targetPort)
+                        socketToTarget.send(sendPacket)
+
                     } catch (e: Exception) {
-                        if (isRunning) {
-                            Log.e("ProxyServer", "[$clientId] UDP receive error: ${e.message}")
-                        }
-                        break
+                        if (isRunning) break
                     }
                 }
-
                 close()
             }
         }
 
-        private fun receiveAndRelay(
-            originalHost: String,
-            originalPort: Int,
-            clientAddr: InetAddress,
-            clientPort: Int
-        ) {
-            thread(isDaemon = true, name = "UDP-Receiver-$clientId-$originalPort") {
-                val recvSocket = DatagramSocket()
-                recvSocket.soTimeout = 10000 // 10 second timeout
-
+        private fun startResponseListener(socket: DatagramSocket, host: String, port: Int, clientAddr: InetAddress, clientPort: Int) {
+            thread(isDaemon = true, name = "UDP-Resp-$port") {
+                val buffer = ByteArray(4096)
                 try {
-                    val buffer = ByteArray(65536)
-                    val packet = DatagramPacket(buffer, buffer.size)
-
                     while (isRunning) {
-                        try {
-                            recvSocket.receive(packet)
-                            lastActivity = System.currentTimeMillis()
+                        val packet = DatagramPacket(buffer, buffer.size)
+                        socket.receive(packet)
 
-                            // Build SOCKS5 UDP header
-                            val responseData = buildUdpResponsePacket(
-                                originalHost,
-                                originalPort,
-                                packet.data.copyOf(packet.length)
-                            )
+                        // Build SOCKS5 UDP Header for the response
+                        val header = buildUdpHeader(host, port)
+                        val combined = header + packet.data.copyOf(packet.length)
 
-                            // Send back to client
-                            val responsePacket = DatagramPacket(
-                                responseData,
-                                responseData.size,
-                                clientAddr,
-                                clientPort
-                            )
-                            socket.send(responsePacket)
-
-                            Log.d("ProxyServer", "[$clientId] UDP <- $originalHost:$originalPort (${packet.length} bytes)")
-
-                        } catch (e: SocketTimeoutException) {
-                            break // No more responses
-                        } catch (e: Exception) {
-                            if (isRunning) {
-                                Log.e("ProxyServer", "[$clientId] UDP response error: ${e.message}")
-                            }
-                            break
-                        }
+                        val response = DatagramPacket(combined, combined.size, clientAddr, clientPort)
+                        relaySocket.send(response)
+                        lastActivity = System.currentTimeMillis()
                     }
-                } finally {
-                    recvSocket.close()
+                } catch (e: Exception) {
+                    targetSockets.remove("$host:$port")
+                    try { socket.close() } catch (ex: Exception) {}
                 }
             }
         }
 
-        private fun buildUdpResponsePacket(host: String, port: Int, payload: ByteArray): ByteArray {
-            val header = mutableListOf<Byte>()
-
-            // RSV (2 bytes)
-            header.add(0x00)
-            header.add(0x00)
-
-            // FRAG
-            header.add(0x00)
-
-            // ATYP and Address
-            if (host.matches(Regex("\\d+\\.\\d+\\.\\d+\\.\\d+"))) {
-                // IPv4
-                header.add(0x01)
-                host.split(".").forEach { header.add(it.toInt().toByte()) }
-            } else {
-                // Domain
-                header.add(0x03)
-                header.add(host.length.toByte())
-                host.toByteArray().forEach { header.add(it) }
-            }
-
-            // Port
-            header.add((port shr 8).toByte())
-            header.add((port and 0xFF).toByte())
-
-            // Combine header + payload
-            return header.toByteArray() + payload
+        private fun buildUdpHeader(host: String, port: Int): ByteArray {
+            val addr = InetAddress.getByName(host).address
+            val header = ByteArray(4 + addr.size + 2)
+            header[0] = 0; header[1] = 0; header[2] = 0 // RSV + FRAG
+            header[3] = 1 // ATYP IPv4
+            System.arraycopy(addr, 0, header, 4, addr.size)
+            header[header.size - 2] = (port shr 8).toByte()
+            header[header.size - 1] = (port and 0xFF).toByte()
+            return header
         }
 
         fun close() {
             isRunning = false
-            try {
-                socket.close()
-            } catch (e: Exception) {}
+            targetSockets.values.forEach { try { it.close() } catch (e: Exception) {} }
+            targetSockets.clear()
+            try { relaySocket.close() } catch (e: Exception) {}
         }
     }
 }
