@@ -2,7 +2,7 @@ This is a more "attractive" and punchy description designed to grab the attentio
 
 ---
 
-# 🚀 Hotspot Bypass VPN: Unlimited, Invisible Tethering
+# 🚀 Hotspot Bypass VPN: Unlimited Hotspot, Invisible Tethering, Unlimited Sharing
 
 **Stop letting carriers tell you how to use your data.** 
 
