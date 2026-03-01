@@ -7,8 +7,6 @@
       [DIR] main/
         - AndroidManifest.xml
         [DIR] java/
-          [DIR] com/
-            [DIR] example/
               [DIR] hotspot_bypass_vpn/
                 - DebugUtils.kt
                 - Dnscache.kt
