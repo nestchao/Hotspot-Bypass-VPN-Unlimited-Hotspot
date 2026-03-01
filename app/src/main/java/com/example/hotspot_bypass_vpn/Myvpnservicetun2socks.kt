@@ -98,15 +98,15 @@ class MyVpnServiceTun2Socks : VpnService() {
             DebugUtils.log("Setting up VPN interface...")
 
             val builder = Builder()
-                .setMtu(1500)
+                .setMtu(1350) // LOWER MTU: 1350 is the "sweet spot" for gaming over proxies
                 .addAddress("10.0.0.2", 24)
-                .addRoute("0.0.0.0", 0)
-                .addRoute("::", 0)  // Route all IPv6
+                .addRoute("0.0.0.0", 0) // Route EVERYTHING
+                // .addRoute("::", 0) // Uncomment if you want to block IPv6 leaks
                 .addDisallowedApplication(packageName)
                 .addDnsServer("8.8.8.8")
                 .addDnsServer("1.1.1.1")
                 .setSession("Hotspot Bypass VPN")
-                .setBlocking(true)
+                .setBlocking(true) // Crucial for gaming stability
 
             vpnInterface = builder.establish()
 
@@ -148,7 +148,7 @@ class MyVpnServiceTun2Socks : VpnService() {
             // Note: The device must be "fd://<number>" for Android
             key.setDevice("fd://$fd")
             key.setProxy(socksProxy)
-            key.setMTU(1500L)
+            key.setMTU(1420L)
             key.setLogLevel("info")
 
             // Optional: Some versions allow setting DNS here,
