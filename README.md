@@ -46,7 +46,6 @@ No clunky 2010-era menus.
     *   Hit **Start VPN** and enjoy the freedom.
 
 ---
----
 
 ## ⚖️ Disclaimer & Legal Notice
 **This project is for educational and research purposes only.**
