@@ -46,4 +46,17 @@ No clunky 2010-era menus.
     *   Hit **Start VPN** and enjoy the freedom.
 
 ---
-**Disclaimer:** *This tool is intended for personal use and for extending your own data reach. Please use responsibly and respect your carrier's Terms of Service.*
+---
+
+## ⚖️ Disclaimer & Legal Notice
+**This project is for educational and research purposes only.**
+
+1. **Terms of Service:** By using this software, you acknowledge that bypassing carrier-imposed hotspot limits may violate your mobile service provider's Terms of Service (ToS).
+2. **Liability:** The developers and contributors of this project are **not responsible** for any consequences resulting from the use of this software, including but not limited to:
+   - Service suspension or termination by your carrier.
+   - Unexpected data charges or overage fees.
+   - Hardware damage or data loss.
+3. **No Warranty:** This software is provided "as-is" without any warranty of any kind. Use at your own risk.
+4. **Compliance:** It is the user's responsibility to ensure that their use of this tool complies with local laws and their contractual obligations with their service provider.
+
+---
