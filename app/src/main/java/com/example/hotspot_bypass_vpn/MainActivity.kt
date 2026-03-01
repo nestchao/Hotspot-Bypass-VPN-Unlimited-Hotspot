@@ -45,10 +45,57 @@ import kotlin.concurrent.thread
 import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
 
+// Dark Theme (Cyber)
 val DarkPurpleBg = Color(0xFF120024)
-val CardPurple = Color(0xFF1A0033)
+val DarkCardPurple = Color(0xFF1A0033)
 val CyberTeal = Color(0xFF03DAC5)
+val CyberPurple = Color(0xFF6200EE)
+
+// Light Theme (Clean)
+val LightBg = Color(0xFFF5F7FA)
+val LightSurface = Color(0xFFFFFFFF)
+val LightPrimaryTeal = Color(0xFF00796B)
+val LightSecondary = Color(0xFF3F51B5)
+
+private val DarkColorScheme = darkColorScheme(
+    primary = CyberTeal,
+    secondary = CyberPurple,
+    background = DarkPurpleBg,
+    surface = DarkCardPurple,
+    onBackground = Color.White,
+    onSurface = Color.White,
+    primaryContainer = CyberTeal.copy(alpha = 0.1f),
+    onPrimaryContainer = CyberTeal
+)
+
+private val LightColorScheme = lightColorScheme(
+    primary = LightPrimaryTeal,
+    secondary = LightSecondary,
+    background = LightBg,
+    surface = LightSurface,
+    onBackground = Color(0xFF1C1B1F),
+    onSurface = Color(0xFF1C1B1F),
+    primaryContainer = LightPrimaryTeal.copy(alpha = 0.1f),
+    onPrimaryContainer = LightPrimaryTeal
+)
+
+@Composable
+fun BypassVPNTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit
+) {
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+
+    MaterialTheme(
+        colorScheme = colorScheme,
+        // Add typography here if needed
+        content = content
+    )
+}
 
 data class HostInfo(
     val ssid: String,
@@ -89,19 +136,14 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
         checkPermissions()
 
         setContent {
-            MaterialTheme(
-                colorScheme = darkColorScheme(
-                    primary = CyberTeal,
-                    secondary = Color(0xFF6200EE), // Original Purple as secondary
-                    background = DarkPurpleBg,
-                    surface = CardPurple,
-                    onBackground = Color.White,
-                    onSurface = Color.White,
-                    primaryContainer = CyberTeal.copy(alpha = 0.1f),
-                    onPrimaryContainer = CyberTeal
-                )
-            ) {
-                Surface(modifier = Modifier.fillMaxSize(), color = DarkPurpleBg) {
+            val isDarkMode = isSystemInDarkTheme()  // Call directly, not in wrapper
+            val colorScheme = if (isDarkMode) DarkColorScheme else LightColorScheme
+
+            MaterialTheme(colorScheme = colorScheme) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
                     MainScreen()
                 }
             }
@@ -116,26 +158,21 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                 CenterAlignedTopAppBar(
                     title = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            // USING YOUR OWN IMAGE HERE:
                             Image(
                                 painter = painterResource(id = R.drawable.app_logo),
                                 contentDescription = "App Logo",
-                                modifier = Modifier
-                                    .size(32.dp) // Adjust size as needed
-                                    .clip(RoundedCornerShape(4.dp)) // Optional: rounds the corners of your image
+                                modifier = Modifier.size(32.dp).clip(RoundedCornerShape(4.dp))
                             )
-
                             Spacer(Modifier.width(12.dp))
-
                             Column {
                                 Text("BYPASS VPN", fontWeight = FontWeight.Black, fontSize = 18.sp)
-                                Text("CONNECTED", fontSize = 8.sp, color = Color(0xFF03DAC5))
+                                Text("CONNECTED", fontSize = 8.sp, color = MaterialTheme.colorScheme.primary)
                             }
                         }
                     },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = DarkPurpleBg, // Dark background
-                        titleContentColor = CyberTeal  // Teal text/logo
+                        containerColor = MaterialTheme.colorScheme.background,
+                        titleContentColor = MaterialTheme.colorScheme.primary
                     )
                 )
             }
@@ -143,8 +180,8 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
             Column(modifier = Modifier.padding(padding)) {
                 TabRow(
                     selectedTabIndex = selectedTab.intValue,
-                    containerColor = DarkPurpleBg, // Change from Color.White to your Dark Background
-                    contentColor = CyberTeal,      // This is the color for the indicator line
+                    containerColor = MaterialTheme.colorScheme.background,
+                    contentColor = MaterialTheme.colorScheme.primary,
                     divider = {},                  // Removes the thin gray line for a cleaner look
                     indicator = { tabPositions ->
                         if (selectedTab.intValue < tabPositions.size) {
@@ -162,7 +199,8 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                         text = {
                             Text(
                                 "Share (Host)",
-                                color = if (selectedTab.intValue == 0) CyberTeal else Color.Gray,
+                                // Use Theme primary color instead of hardcoded CyberTeal
+                                color = if (selectedTab.intValue == 0) MaterialTheme.colorScheme.primary else Color.Gray,
                                 fontWeight = if (selectedTab.intValue == 0) FontWeight.Bold else FontWeight.Normal
                             )
                         },
@@ -170,7 +208,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                             Icon(
                                 Icons.Default.Share,
                                 contentDescription = null,
-                                tint = if (selectedTab.intValue == 0) CyberTeal else Color.Gray
+                                tint = if (selectedTab.intValue == 0) MaterialTheme.colorScheme.primary else Color.Gray
                             )
                         }
                     )
@@ -182,7 +220,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                         text = {
                             Text(
                                 "Connect (Client)",
-                                color = if (selectedTab.intValue == 1) CyberTeal else Color.Gray,
+                                color = if (selectedTab.intValue == 1) MaterialTheme.colorScheme.primary else Color.Gray,
                                 fontWeight = if (selectedTab.intValue == 1) FontWeight.Bold else FontWeight.Normal
                             )
                         },
@@ -190,7 +228,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                             Icon(
                                 Icons.Default.VpnLock,
                                 contentDescription = null,
-                                tint = if (selectedTab.intValue == 1) CyberTeal else Color.Gray
+                                tint = if (selectedTab.intValue == 1) MaterialTheme.colorScheme.primary else Color.Gray
                             )
                         }
                     )
@@ -235,25 +273,26 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = CardPurple), // Use the Dark theme color
-            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))     // Subtle border
+            // FIXED: Uses the theme surface color instead of hardcoded CardPurple
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Settings", fontWeight = FontWeight.Bold, color = Color.White) // Ensure text is White
+                Text("Settings", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Wi-Fi Band:", modifier = Modifier.weight(1f))
+                    Text("Wi-Fi Band:", modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface)
                     FilterChip(
                         selected = selectedBand.intValue == 1,
                         onClick = { selectedBand.intValue = 1 },
                         label = { Text("2.4 GHz") },
                         enabled = !isHostRunning.value && !isClientRunning.value,
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = CyberTeal,
-                            selectedLabelColor = DarkPurpleBg,
-                            labelColor = Color.White
-                    )
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.background, // Adapts to Light or Dark
+                            labelColor = MaterialTheme.colorScheme.onSurface      // Adapts to Black or White text
+                        )
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     FilterChip(
@@ -262,9 +301,9 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                         label = { Text("5 GHz") },
                         enabled = !isHostRunning.value && !isClientRunning.value,
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = CyberTeal,
-                            selectedLabelColor = DarkPurpleBg,
-                            labelColor = Color.White
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.background, // Adapts to Light or Dark
+                            labelColor = MaterialTheme.colorScheme.onSurface      // Adapts to Black or White text
                         )
                     )
                 }
@@ -276,8 +315,8 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                         onClick = { handleStartHost() },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = CyberTeal,      // Glowing Teal
-                            contentColor = DarkPurpleBg      // Deep Purple text (high contrast)
+                            containerColor = MaterialTheme.colorScheme.primary,    // Dynamic
+                            contentColor = MaterialTheme.colorScheme.background    // Dynamic
                         ),
                         shape = RoundedCornerShape(16.dp),
                         enabled = !isClientRunning.value
@@ -291,7 +330,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                         onClick = { handleStopHost() },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFB00020), // Material Error Red
+                            containerColor = Color(0xFFB00020), // Standard Red
                             contentColor = Color.White
                         ),
                         shape = RoundedCornerShape(16.dp)
@@ -304,21 +343,24 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
             }
         }
 
+        // Host Info Card (Update for contrast)
         AnimatedVisibility(visible = hostInfoState.value != null) {
             hostInfoState.value?.let { info ->
                 Spacer(modifier = Modifier.height(16.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isSystemInDarkTheme()) Color(0xFF1B2E1C) else Color(0xFFE8F5E9)
+                    ),
                     border = BorderStroke(1.dp, Color(0xFF4CAF50))
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF2E7D32))
+                            Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF4CAF50))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Connection Details (Phone B)", fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
+                            Text("Connection Details (Phone B)", fontWeight = FontWeight.Bold, color = Color(0xFF4CAF50))
                         }
-                        Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFA5D6A7))
+                        Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFF4CAF50).copy(alpha = 0.3f))
                         InfoRow(label = "SSID", value = info.ssid)
                         InfoRow(label = "Password", value = info.pass)
                         InfoRow(label = "Proxy IP", value = info.ip)
@@ -347,11 +389,12 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = CardPurple), // Use the Dark theme color
-            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))     // Subtle border
+            // FIXED: Uses the theme surface color
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Settings", fontWeight = FontWeight.Bold, color = Color.White) // Ensure text is White
+                Text("Settings", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(12.dp))
 
                 OutlinedTextField(
@@ -383,8 +426,8 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                         onClick = { handleConnectClient() },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = CyberTeal,      // Glowing Teal
-                            contentColor = DarkPurpleBg      // Deep Purple text (high contrast)
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.background
                         ),
                         shape = RoundedCornerShape(16.dp),
                         enabled = !isHostRunning.value
@@ -398,7 +441,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                         onClick = { handleStopClient() },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFB00020), // Material Error Red
+                            containerColor = Color(0xFFB00020),
                             contentColor = Color.White
                         ),
                         shape = RoundedCornerShape(16.dp)
@@ -416,9 +459,9 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
             OutlinedButton(
                 onClick = { handleReconnectVPN() },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
-                border = BorderStroke(1.dp, CyberTeal), // Teal border
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = CyberTeal // Teal text
+                    contentColor = MaterialTheme.colorScheme.primary
                 ),
                 shape = RoundedCornerShape(16.dp)
             ) {
@@ -448,7 +491,9 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
     fun ConflictCard(message: String) {
         Card(
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isSystemInDarkTheme()) Color(0xFF3D0000) else Color(0xFFFFEBEE)
+            ),
             border = BorderStroke(1.dp, Color.Red)
         ) {
             Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -461,15 +506,11 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
 
     @Composable
     fun StatusCard(title: String, isActive: Boolean, activeColor: Color, icon: ImageVector) {
-        // 1. ADD THE ANIMATION LOGIC HERE (Fixes the 'alpha' error)
         val infiniteTransition = rememberInfiniteTransition(label = "pulse")
         val alpha by infiniteTransition.animateFloat(
             initialValue = 0.3f,
             targetValue = 1f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(800, easing = LinearEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
+            animationSpec = infiniteRepeatable(animation = tween(800, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
             label = "alpha"
         )
 
@@ -477,30 +518,25 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(
-                // Use your Dark Purple (CardPurple) when inactive
-                containerColor = if (isActive) activeColor.copy(alpha = 0.08f) else CardPurple
+                // Uses theme surface color
+                containerColor = if (isActive) activeColor.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface
             ),
             border = BorderStroke(
                 width = if (isActive) 2.dp else 1.dp,
-                color = if (isActive) activeColor else Color.White.copy(alpha = 0.1f)
+                color = if (isActive) activeColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
             )
         ) {
-            Row(
-                modifier = Modifier.padding(20.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Icon Circle
+            Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
                         .size(52.dp)
-                        // Inactive color is now a subtle dark purple instead of bright white
-                        .background(if (isActive) activeColor else Color.White.copy(alpha = 0.05f), CircleShape),
+                        .background(if (isActive) activeColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = if (isActive) Color.Black else Color.Gray, // Dark icon on bright active color
+                        tint = if (isActive) Color.White else Color.Gray,
                         modifier = Modifier.size(28.dp)
                     )
                 }
@@ -508,31 +544,20 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                 Spacer(modifier = Modifier.width(16.dp))
 
                 Column {
-                    // FIXED: Color.White so you can see it on the dark background
                     Text(
                         text = title,
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onSurface // Adapts to Black/White
                     )
-
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Pulsing Dot
-                        Box(
-                            modifier = Modifier
-                                .size(10.dp)
-                                .clip(CircleShape)
-                                .background(if (isActive) activeColor.copy(alpha = alpha) else Color.Gray)
-                        )
-
+                        Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(if (isActive) activeColor.copy(alpha = alpha) else Color.Gray))
                         Spacer(modifier = Modifier.width(8.dp))
-
                         Text(
                             text = if (isActive) "SERVICE ACTIVE" else "SERVICE READY",
                             color = if (isActive) activeColor else Color.Gray,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            letterSpacing = 1.sp
+                            fontSize = 12.sp
                         )
                     }
                 }
@@ -543,19 +568,25 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
     @Composable
     fun DebugLogSection() {
         var showLogs by remember { mutableStateOf(false) }
+        val logBgColor = if (isSystemInDarkTheme()) Color(0xFF1E1E1E) else Color(0xFFE0E0E0)
+        val logTextColor = if (isSystemInDarkTheme()) Color(0xFF00E676) else Color(0xFF1B5E20)
+
         Column(modifier = Modifier.fillMaxWidth()) {
-            TextButton(onClick = { showLogs = !showLogs }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+            TextButton(onClick = { showLogs = !showLogs }) {
                 Icon(if (showLogs) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, null)
-                Spacer(modifier = Modifier.width(4.dp))
                 Text(if (showLogs) "Hide Debug Logs" else "Show Debug Logs")
             }
             AnimatedVisibility(visible = showLogs) {
                 Box(
-                    modifier = Modifier.fillMaxWidth().height(200.dp).background(Color(0xFF1E1E1E), RoundedCornerShape(12.dp)).padding(12.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .background(logBgColor, RoundedCornerShape(12.dp)) // Adaptive background
+                        .padding(12.dp)
                 ) {
                     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                         logState.asReversed().forEach { logLine ->
-                            Text(text = "➜ $logLine", fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = Color(0xFF00E676))
+                            Text(text = "➜ $logLine", fontSize = 11.sp, color = logTextColor) // Adaptive text
                         }
                     }
                 }
@@ -569,16 +600,28 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
         Row(modifier = Modifier.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(label.uppercase(), fontSize = 10.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
-                Text(value, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = Color.DarkGray)
+                Text(
+                    value,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 15.sp,
+                    color = MaterialTheme.colorScheme.onSurface // Dynamic color
+                )
             }
             IconButton(
                 onClick = {
                     clipboardManager.setText(AnnotatedString(value))
-                    Toast.makeText(this@MainActivity, "$label copied", Toast.LENGTH_SHORT).show()
                 },
-                modifier = Modifier.background(Color(0xFFF5F5F5), CircleShape).size(36.dp)
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f), CircleShape) // Subtle contrast
+                    .size(36.dp)
             ) {
-                Icon(Icons.Default.ContentCopy, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                Icon(
+                    Icons.Default.ContentCopy,
+                    null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
             }
         }
     }
