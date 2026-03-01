@@ -1,29 +1,49 @@
-This repository contains a specialized networking toolset designed to bypass carrier-imposed hotspot data limits and throttling. It allows you to share your phone's internet connection (including VPN data) with other Android devices or Windows PCs using Wi-Fi Direct and SOCKS5 proxying.
+This is a more "attractive" and punchy description designed to grab the attention of users looking for ways to maximize their data plans.
 
-### **Project Overview**
-Unlike standard Android tethering, which flags data as "Hotspot," this project uses **Wi-Fi Direct (P2P)** to create a private network. It then runs a local **SOCKS5 Proxy Server** on the host device and a **VPN Client** on the connected devices to route all traffic through the proxy, making the tethered data indistinguishable from on-device data.
+---
 
-### **Core Components**
+# 🚀 Hotspot Bypass VPN: Unlimited, Invisible Tethering
 
-#### **1. Android App (The Host & Client)**
-*   **Host Mode:** Creates a Wi-Fi Direct group and starts a high-performance SOCKS5 server (TCP/UDP supported) to act as a gateway.
-*   **Client Mode:** Uses `tun2socks` to create a system-wide VPN tunnel that routes all device traffic (including games and apps) to the Host's proxy.
-*   **Optimized Engine:** Includes a custom-built VPN service with DNS caching and multi-threaded packet processing to ensure low latency for gaming and streaming.
-*   **Modern UI:** Built with Jetpack Compose and Material 3, featuring real-time connection logs and hardware status monitoring.
+**Stop letting carriers tell you how to use your data.** 
 
-#### **2. Windows Companion (Phone Proxy Manager)**
-*   **Global VPN (TUN) Mode:** Uses `wintun` and `tun2socks` to route 100% of Windows traffic (not just the browser) through the phone.
-*   **HTTP/SOCKS Bridge:** A built-in bridge that allows legacy applications to connect via local port forwarding.
-*   **Automatic Setup:** Automatically downloads required binaries and configures Windows routing tables/system proxy settings with a single click.
+Most mobile plans offer "Unlimited Data" but choke you with a tiny 5GB or 10GB "Hotspot" cap. **Hotspot Bypass VPN** breaks those chains. It turns your phone into a high-performance, stealthy internet hub that lets you share your full mobile speed and data with any Windows PC or Android device—**without ever touching your hotspot allowance.**
 
-### **Key Features**
-*   **Bypass Restrictions:** Share your mobile data without hitting hotspot caps or "tethering" speed limits.
-*   **Share VPNs:** Share an active VPN connection from your phone to other devices that don't support VPNs.
-*   **UDP Support:** Dedicated handling for UDP associations, enabling online gaming (Roblox, Discord, etc.) over the proxied connection.
-*   **Battery Optimized:** Includes requests for battery optimization exemptions to prevent the service from being killed in the background.
-*   **No Root Required:** Operates entirely within the Android VpnService and Wi-Fi Direct APIs.
+## ✨ Why use this?
+*   **♾️ True Unlimited Sharing:** Use your primary phone data on your laptop or tablet. If your phone has unlimited data, your PC now has unlimited data.
+*   **👻 Stealth Mode (Carrier Invisible):** Carriers use "TTL" and "Deep Packet Inspection" to detect hotspot usage. Our SOCKS5 + tun2socks engine masks your traffic, making tethered data look identical to on-device data.
+*   **🎮 Built for Gaming & Streaming:** Unlike laggy "Proxy Apps," our engine is optimized for low-latency UDP traffic. Play Roblox, Call of Duty, or Discord without the ping spikes.
+*   **🛡️ Share your VPN:** Is your phone connected to a VPN? Now your PC is too. Perfect for bypassing school/work Wi-Fi blocks or region-locking.
+*   **⚡ No Root Required:** Works on any modern Android device without voiding your warranty or risking your security.
 
-### **Technology Stack**
-*   **Android:** Kotlin, Jetpack Compose, Coroutines, VpnService API, Wi-Fi P2P API.
-*   **Windows:** Python 3, Tkinter, WinReg, Subprocess (routing).
-*   **Networking:** SOCKS5 Protocol, tun2socks (Go engine), Wintun (L3 TUN driver).
+---
+
+## 🛠️ How the Magic Works
+
+### 📱 The Android App (Host & Client)
+*   **The Hub (Host):** Uses Wi-Fi Direct (P2P) to create a private high-speed link. It launches a professional-grade SOCKS5 server that acts as your gateway.
+*   **The Tunnel (Client):** For Android-to-Android sharing, the client app uses a custom `tun2socks` engine to force the entire device (every app and game) through the invisible tunnel.
+*   **Performance Engine:** Features multi-threaded packet processing and DNS caching to make your "hotspot" feel like a fiber connection.
+
+### 💻 The Windows Manager (Ultimate Edition)
+*   **Global TUN Mode:** Don't just proxy your browser. One click creates a virtual network adapter (`wintun`) that routes **100% of Windows traffic**—including Steam, Epic Games, and system updates—through your phone.
+*   **Admin Optimized:** Automatically handles complex Windows routing tables and registry settings so you don't have to.
+
+---
+
+## 🎨 Professional, Modern Interface
+No clunky 2010-era menus. 
+*   **Material 3 Design:** A beautiful, "Cyber" dark-themed UI built with Jetpack Compose.
+*   **Real-time Analytics:** Watch your speeds and connection health with live debug logs and status pulsers.
+*   **One-Tap Connect:** Setup is automated. Just hit "Start" on the phone and "Start" on the PC.
+
+---
+
+## 🚦 Quick Start
+1.  **Phone A (The Internet):** Open the app, go to the "Share" tab, and hit **Start Service**.
+2.  **Phone B or PC (The Receiver):** 
+    *   Connect to the Wi-Fi Direct network shown on Phone A.
+    *   Open the Client App (Android) or Proxy Manager (Windows).
+    *   Hit **Start VPN** and enjoy the freedom.
+
+---
+**Disclaimer:** *This tool is intended for personal use and for extending your own data reach. Please use responsibly and respect your carrier's Terms of Service.*
