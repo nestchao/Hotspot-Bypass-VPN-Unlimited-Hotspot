@@ -34,6 +34,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
@@ -54,16 +56,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 
 // Dark Theme (Cyber)
-val DarkPurpleBg = Color(0xFF120024)
-val DarkCardPurple = Color(0xFF1A0033)
-val CyberTeal = Color(0xFF03DAC5)
-val CyberPurple = Color(0xFF6200EE)
+val DarkPurpleBg = Color(0xFF101719)
+val DarkCardPurple = Color(0xFF1A2427)
+val CyberTeal = Color(0xFF68D7CE)
+val CyberPurple = Color(0xFF92A7AE)
 
 // Light Theme (Clean)
-val LightBg = Color(0xFFF5F7FA)
+val LightBg = Color(0xFFF6F9F8)
 val LightSurface = Color(0xFFFFFFFF)
-val LightPrimaryTeal = Color(0xFF00796B)
-val LightSecondary = Color(0xFF3F51B5)
+val LightPrimaryTeal = Color(0xFF006E67)
+val LightSecondary = Color(0xFF476A70)
 
 private val DarkColorScheme = darkColorScheme(
     primary = CyberTeal,
@@ -188,7 +190,15 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                                 Spacer(Modifier.width(12.dp))
                                 Column {
                                     Text("BYPASS VPN", fontWeight = FontWeight.Black, fontSize = 18.sp)
-                                    Text("CONNECTED", fontSize = 8.sp, color = MaterialTheme.colorScheme.primary)
+                                    Text(
+                                        when {
+                                            isHostRunning.value -> "Host service running"
+                                            isClientRunning.value -> "VPN service running"
+                                            else -> "Ready to connect"
+                                        },
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                             }
                         },
@@ -218,7 +228,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                         if (selectedTab.intValue < tabPositions.size) {
                             TabRowDefaults.SecondaryIndicator(
                                 modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab.intValue]),
-                                color = CyberTeal // The moving line under the tab
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
@@ -368,6 +378,9 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
 
     @Composable
     fun HostModeView() {
+        Text("Share your connection", modifier = Modifier.fillMaxWidth(), fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Text("Use this phone as the host for other devices.", modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.height(20.dp))
         StatusCard(
             title = "Hotspot Sharing",
             isActive = isHostRunning.value,
@@ -375,6 +388,13 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
             icon = Icons.Default.CellTower
         )
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SetupSteps(listOf(
+            "Turn on mobile data and Wi-Fi on this phone.",
+            "Start sharing, then copy the network and proxy details below.",
+            "On each client, join this Wi-Fi network and start its VPN."
+        ))
         Spacer(modifier = Modifier.height(16.dp))
 
         if (isClientRunning.value) {
@@ -389,7 +409,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Settings", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text("Wi-Fi settings", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -475,7 +495,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF4CAF50))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Connection Details (Phone B)", fontWeight = FontWeight.Bold, color = Color(0xFF4CAF50))
+                            Text("Details for every client", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         }
                         Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFF4CAF50).copy(alpha = 0.3f))
                         InfoRow(label = "SSID", value = info.ssid)
@@ -490,6 +510,9 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
 
     @Composable
     fun ClientModeView() {
+        Text("Connect to a host", modifier = Modifier.fillMaxWidth(), fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Text("Route this device through the host phone.", modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.height(20.dp))
         StatusCard(
             title = "VPN Tunnel",
             isActive = isClientRunning.value,
@@ -497,6 +520,13 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
             icon = Icons.Default.Security
         )
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        SetupSteps(listOf(
+            "Join the host phone's Wi-Fi network in Android settings.",
+            "Enter the proxy IP and port shown on the host.",
+            "Start the VPN and approve Android's connection prompt."
+        ))
         Spacer(modifier = Modifier.height(16.dp))
 
         if (isHostRunning.value) {
@@ -511,7 +541,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Settings", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text("Host address", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(12.dp))
 
                 OutlinedTextField(
@@ -521,6 +551,8 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = { Icon(Icons.Default.Lan, null) },
                     shape = RoundedCornerShape(12.dp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
                     enabled = !isClientRunning.value && !isHostRunning.value
                 )
 
@@ -533,6 +565,8 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = { Icon(Icons.Default.Numbers, null) },
                     shape = RoundedCornerShape(12.dp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
                     enabled = !isClientRunning.value && !isHostRunning.value
                 )
 
@@ -622,6 +656,20 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
     }
 
     @Composable
+    fun SetupSteps(steps: List<String>) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text("HOW IT WORKS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, letterSpacing = 1.sp)
+            Spacer(Modifier.height(8.dp))
+            steps.forEachIndexed { index, step ->
+                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalAlignment = Alignment.Top) {
+                    Text("${index + 1}.", modifier = Modifier.width(26.dp), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text(step, modifier = Modifier.weight(1f), fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+
+    @Composable
     fun StatusCard(title: String, isActive: Boolean, activeColor: Color, icon: ImageVector) {
         val infiniteTransition = rememberInfiniteTransition(label = "pulse")
         val alpha by infiniteTransition.animateFloat(
@@ -671,7 +719,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                         Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(if (isActive) activeColor.copy(alpha = alpha) else Color.Gray))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (isActive) "SERVICE ACTIVE" else "SERVICE READY",
+                            text = if (isActive) "SERVICE RUNNING" else "NOT RUNNING",
                             color = if (isActive) activeColor else Color.Gray,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp
@@ -735,7 +783,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
             ) {
                 Icon(
                     Icons.Default.ContentCopy,
-                    null,
+                    contentDescription = "Copy $label",
                     modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.primary
                 )
@@ -757,8 +805,8 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
             }
             isHostRunning.value = true
             logState.add("Starting Host Service...")
+            saveServiceState(hostRunning = true)
         }
-        saveServiceState(hostRunning = true)
     }
 
     private fun handleStopHost() {
@@ -771,6 +819,15 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
     }
 
     private fun handleConnectClient() {
+        val address = clientIp.value.trim()
+        val port = clientPort.value.toIntOrNull()
+        val validAddress = address.split('.').let { octets ->
+            octets.size == 4 && octets.all { it.isNotEmpty() && it.length <= 3 && (it.toIntOrNull()?.let { number -> number in 0..255 } == true) }
+        }
+        if (!validAddress || port == null || port !in 1..65535) {
+            Toast.makeText(this, "Enter a valid host IP and port (1-65535).", Toast.LENGTH_LONG).show()
+            return
+        }
         if (checkHardwareStatus()) {
             if (!isIgnoringBatteryOptimizations()) {
                 requestIgnoreBatteryOptimizations()
@@ -781,7 +838,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                 navigateToPrivateDnsSettings()
                 return
             }
-            prepareVpn(clientIp.value, clientPort.value.toIntOrNull() ?: 8080)
+            prepareVpn(address, port)
         }
     }
 
@@ -813,7 +870,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
     }
 
     override fun onConnectionInfoAvailable(info: WifiP2pInfo?) {
-        if (info != null && info.groupFormed) {
+        if (info != null && info.groupFormed && info.isGroupOwner) {
             isHostRunning.value = true
         }
     }
@@ -827,6 +884,9 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                 port = "8080"
             )
             isHostRunning.value = true
+        } else if (!isServiceRunning(HostService::class.java)) {
+            hostInfoState.value = null
+            isHostRunning.value = false
         }
     }
 
@@ -940,7 +1000,6 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
             try {
                 manager.requestGroupInfo(channel) { group ->
                     if (group != null) {
-                        isHostRunning.value = true
                         updateGroupInfo(group)
                     } else {
                         if (!isServiceRunning(HostService::class.java)) {
