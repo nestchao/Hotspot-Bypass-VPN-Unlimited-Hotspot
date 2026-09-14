@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bypass VPN — Design QA</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { min-width: 900px; min-height: 680px; margin: 0; background: #080c0e; color: #eaf1f2; font-family: Inter, system-ui, sans-serif; }
+      body { display: grid; place-items: center; }
+      main { display: grid; grid-template-columns: 300px 1fr; gap: 22px; align-items: start; width: 870px; }
+      figure { margin: 0; }
+      figcaption { height: 30px; color: #7d898e; font-size: 12px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; }
+      .source { display: block; width: 300px; height: 618px; object-fit: cover; object-position: top; border: 1px solid #263036; border-radius: 14px; }
+      iframe { display: block; width: 548px; height: 618px; border: 1px solid #263036; border-radius: 14px; background: #080c0e; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <figure>
+        <figcaption>Selected minimalist direction</figcaption>
+        <img class="source" src="/assets/qa/source-minimalist.png" alt="Minimalist Bypass VPN source design" />
+      </figure>
+      <figure>
+        <figcaption>Interactive HTML implementation</figcaption>
+        <iframe src="/?qa=1" title="Interactive Bypass VPN prototype"></iframe>
+      </figure>
+    </main>
+  </body>
+</html>

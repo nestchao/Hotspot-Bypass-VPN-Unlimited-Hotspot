@@ -20,6 +20,7 @@ Visit our website for:
 
 ### Android Application
 - **Share Mode (Host)**: Creates a high-performance Wi-Fi Direct hotspot that bypasses carrier tethering limits by routing traffic through a local SOCKS5 proxy. Persistent background operation even when screen is locked or app is swiped away.
+- **Multi-device sharing**: Serves multiple Android and Windows clients concurrently without allowing one busy device to starve later connections.
 - **Connect Mode (Client)**: Connects to a host phone and tunnels all system traffic through a VPN using tun2socks for robust, gaming-optimized packet handling.
 
 ### Laptop Client (Python)
@@ -67,7 +68,8 @@ Visit our website for:
 | **Bypass method** | SOCKS5 proxy over Wi-Fi Direct hides tethering traffic from carriers |
 | **MTU tuning** | Optimized for gaming (MTU 1350) to reduce packet fragmentation |
 | **Persistence** | Android Foreground Service + WakeLock + AlarmManager restart logic |
-| **Connection stability** | Client socket timeout set to infinite (0); idle connection cleaner at 10 minutes; server socket timeout at 5 minutes; pipe buffer at 64KB |
+| **Connection stability** | Immediately scaling worker pool, 10-minute TCP idle cleanup, 5-minute UDP association cleanup, and 64KB pipe buffers |
+| **Multi-client limits** | Up to 256 simultaneous proxy connections globally and 128 per client IP, preventing a single device from consuming the host |
 
 ---
 
