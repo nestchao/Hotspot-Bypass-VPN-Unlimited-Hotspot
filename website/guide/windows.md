@@ -8,11 +8,11 @@ The Windows desktop client connects your laptop to the phone's SOCKS5 proxy and 
 
 ## Installation
 
-### Option 1: Standalone EXE (Recommended)
+### Option 1: Portable Windows Client
 
-1. Download `Hotspot_Bypass_VPN_Windows.exe` from the [Download page](/download).
-2. Run the executable. If Windows SmartScreen shows a warning, click **More info** → **Run anyway**.
-3. The app will request **Administrator privileges** — accept it (required for TUN virtual adapter).
+1. Download the Windows portable ZIP from a release that includes it, and extract the entire folder.
+2. Run `Hotspot_Bypass_VPN_Windows.exe` from the extracted folder. Keep the adjacent `_internal` files with it.
+3. The app will request **Administrator privileges** for the VPN adapter and connection sharing.
 
 ### Option 2: From Source
 
@@ -62,6 +62,12 @@ Note the connection details:
 
 ---
 
+## Share with PS4, PS5, or Other Devices
+
+After the VPN shows **Connected**, use **Share with consoles & devices**. The default is **Wi-Fi hotspot**; choose **Ethernet cable** if you prefer a wire, then refresh and select the connected adapter. Click **Start Sharing Network** and follow the connection details shown in the app. Set the console's IP and DNS to automatic and leave its proxy setting off. See the [console setup guide](/guide/non-app-devices) for troubleshooting and NAT limitations.
+
+---
+
 ## Troubleshooting
 
 | Issue | Solution |
@@ -71,4 +77,4 @@ Note the connection details:
 | TUN adapter not created | Run the app as Administrator. Disable any other VPN software. |
 | No internet after connecting | Try restarting the VPN. Check the phone is still in Host mode. |
 | Game lag / high ping | Switch phone to 5GHz Wi-Fi Direct band. Reduce distance between devices. |
-| Bridge mode not working | Make sure ICS is configured correctly. Restart the mobile hotspot. |
+| Console has no connection | Check the console setup guide, verify the selected adapter, and retry sharing. |

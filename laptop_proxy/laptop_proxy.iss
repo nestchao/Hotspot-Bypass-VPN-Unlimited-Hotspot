@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Laptop Proxy"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.0-beta.2"
 #define MyAppPublisher "HotspotBypassVPN"
 #define MyAppExeName "Hotspot_Bypass_VPN_Windows.exe"
 

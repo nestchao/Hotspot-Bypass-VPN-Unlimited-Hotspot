@@ -1,123 +1,45 @@
-# Non-App Device Guide
+# Share Internet with Consoles and Other Devices
 
-## Overview
+A PS4, PS5, Xbox, smart TV, or other device can use the Android host without installing an app. A Windows 10/11 laptop acts as the bridge:
 
-Devices that cannot run the Android app (game consoles, Macs, Smart TVs) can still use the bypassed connection through **Windows Internet Connection Sharing (ICS)**.
+`Android SOCKS5 host -> Windows VPN tunnel -> Windows Internet Connection Sharing -> console`
 
-The setup requires:
-1. A phone running **Host mode** (the hotspot)
-2. A Windows laptop running the **Windows Client** in VPN mode
-3. The target device connects to the laptop's mobile hotspot
+The phone's Wi-Fi Direct connection is a SOCKS5 proxy, so connecting a console directly to it does not provide a normal internet connection. The Windows client creates a VPN adapter and shares that adapter over one selected Ethernet port or Windows Mobile Hotspot.
 
----
+## Before You Start
 
-## Setup Diagram
+1. Start **Share (Host)** on the Android phone.
+2. Connect the Windows laptop to the phone's Wi-Fi Direct network.
+3. Run the [Windows client](/guide/windows) as Administrator and click **Connect VPN**. Wait for **Connected**.
+4. For Ethernet, connect the console to a laptop Ethernet port or USB Ethernet adapter. For Wi-Fi, the laptop must support Mobile Hotspot while connected to the phone.
 
-```
-[Phone (Host Mode)]
-       |
-   Wi-Fi Direct
-       |
-[Windows Laptop (VPN + Mobile Hotspot)]
-       |
-   Wi-Fi Hotspot
-       |
-[PS5 / Xbox / Switch / Mac / TV]
-```
+## Ethernet Cable
 
----
+1. Select **Ethernet cable** in **Share with consoles & devices**.
+2. Connect the cable, click **Refresh**, and select the connected Ethernet adapter.
+3. Click **Start Sharing Network** and wait for the success message.
+4. Set up a wired connection on the console. Keep IP and DNS automatic, and leave proxy settings off.
+5. Test the console connection, then try a download and an online game.
 
-## Prerequisites
+## Wi-Fi Hotspot
 
-- A phone with the app running in **Host mode**
-- A **Windows laptop** (10 or 11, 64-bit) with Wi-Fi
-- The **target device** you want to connect
+1. Leave the default **Wi-Fi hotspot** method selected in **Share with consoles & devices** and click **Start Sharing Network**.
+2. Wait for confirmation that the hotspot and sharing are active. Join the displayed network using the displayed password. You can also find them under **Windows Settings > Network & internet > Mobile hotspot**.
+3. Keep the console's IP and DNS automatic, and leave proxy settings off.
+4. Test the console connection, then try a download and an online game.
 
----
+If the hotspot cannot start or the Wi-Fi adapter cannot stay connected to the phone while hosting, use Ethernet. A second Wi-Fi adapter may also help.
 
-## Step-by-Step Setup
+## Stop and Troubleshooting
 
-### Step 1: Phone Setup
+Click **Stop Sharing Network** before stopping the VPN. The client also removes its sharing configuration on VPN stop or tunnel loss and restores the Windows sharing settings it changed. If cleanup fails, retry **Stop Sharing Network** and check the adapter's **Sharing** tab in Windows Network Connections before closing the app.
 
-1. Open the app on your phone.
-2. Switch to **HOST** tab.
-3. Tap **Start Host**.
-4. Note the connection details (SSID, password, proxy IP, port).
+| Issue | What to check |
+|-------|---------------|
+| Ethernet adapter is missing | Connect the cable, wait for Windows to show the port as connected, then click **Refresh**. |
+| Sharing already in use | The app leaves sharing on unrelated adapters alone. Disable the other sharing first. |
+| Hotspot will not start | Check Windows Mobile Hotspot settings, try a second Wi-Fi adapter, or use Ethernet. |
+| Console has no IP or DNS | Restart console sharing and reconnect the console. |
+| Downloads work but games fail | Mobile-carrier NAT can restrict inbound traffic. Outbound TCP and UDP are forwarded, but NAT Type 2 and every peer-to-peer game cannot be guaranteed. |
 
-### Step 2: Laptop Setup
-
-1. Connect your laptop to the phone's Wi-Fi Direct: **DIRECT-HotspotBypass** (password: `87654321`).
-2. Launch the **Windows Client** and start the VPN (see [Windows Guide](/guide/windows)).
-3. Once connected, go to **Settings → Network & Internet → Mobile hotspot**.
-4. Turn on **Mobile hotspot**.
-
-### Step 3: Configure ICS
-
-1. Open **Control Panel → Network and Sharing Center → Change adapter settings**.
-2. Right-click the **LaptopProxyVPN** TUN adapter → **Properties**.
-3. Go to the **Sharing** tab.
-4. Check **Allow other network users to connect through this computer's Internet connection**.
-5. In the dropdown, select your mobile hotspot adapter (usually "Local Area Connection* ##" or similar).
-6. Click **OK**.
-
-### Step 4: Connect Your Device
-
-1. On your game console / Mac / TV, open Wi-Fi settings.
-2. Find and connect to the laptop's mobile hotspot network.
-3. The device should now have internet access through the bypassed connection.
-
----
-
-## Per-Device Notes
-
-### PlayStation 5 / PlayStation 4
-
-- Go to **Settings → Network → Settings → Set Up Internet Connection**
-- Select **Use Wi-Fi** → choose the laptop's hotspot
-- No proxy configuration needed — ICS handles everything
-- Test the connection in **Settings → Network → Connection Status**
-
-### Xbox Series X|S / Xbox One
-
-- Go to **Settings → General → Network settings → Set up wireless network**
-- Select the laptop's hotspot
-- Go to **Test network connection** to verify
-
-### Nintendo Switch
-
-- Go to **System Settings → Internet → Internet Settings**
-- Select the laptop's hotspot
-- Test the connection
-
-### MacBook
-
-- Connect to the laptop's hotspot via Wi-Fi
-- No additional configuration needed
-- Ideal for gaming, browsing, and streaming
-
-### Smart TV
-
-- Open **Network Settings** → **Wi-Fi**
-- Select the laptop's hotspot
-- Works for streaming apps (Netflix, YouTube, etc.) and web browsing
-
----
-
-## Performance Tips
-
-- **5GHz band** — Set the phone to 5GHz Wi-Fi Direct band for lower latency
-- **Proximity** — Keep the phone and laptop within 10 meters for best signal
-- **Wired bridge** — For lowest latency, connect the laptop to the console via Ethernet instead of Wi-Fi hotspot
-- **Close other apps** — Reduce bandwidth usage on the phone for better gaming performance
-
----
-
-## Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Device connects but no internet | Check ICS configuration. Restart the mobile hotspot. |
-| High latency / lag | Switch phone to 5GHz. Move devices closer together. |
-| Hotspot not appearing | Make sure Windows Mobile Hotspot is supported on your laptop. |
-| VPN disconnects when hotspot is turned on | Some Wi-Fi adapters can't handle both. Try a USB Wi-Fi adapter for the hotspot. |
-| Console can't find the hotspot | Set the hotspot to 2.4GHz band in Windows settings. |
+A Mac or other computer can also join the Windows bridge. The Windows client itself runs only on Windows.

@@ -17,7 +17,10 @@ local.properties
 # Laptop proxy
 laptop_proxy/logs/
 laptop_proxy/venv/
+laptop_proxy/dist/
+laptop_proxy/build/
 laptop_proxy/__pycache__/
+laptop_proxy/tests/__pycache__/
 laptop_proxy/.pytest_cache/
 laptop_proxy/*.txt
 laptop_proxy/*.spec

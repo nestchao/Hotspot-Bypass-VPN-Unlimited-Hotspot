@@ -1,32 +1,27 @@
 @echo off
-echo ========================================
-echo   Laptop Proxy - EXE Builder
-echo ========================================
+setlocal
+cd /d "%~dp0"
 
-echo.
-echo [1/3] Preparing virtual environment...
-if not exist venv (
-    python -m venv venv
+where python >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] Python is not on PATH. Install Python 3 and retry.
+    exit /b 1
 )
-call venv\Scripts\activate
+if not exist "venv\Scripts\python.exe" (
+    python -m venv venv
+    if errorlevel 1 exit /b 1
+)
 
-echo.
-echo [2/3] Installing dependencies...
-pip install -r requirements.txt
+"venv\Scripts\python.exe" -m pip install -r requirements.txt
+if errorlevel 1 exit /b 1
 
-echo.
-echo [3/3] Building EXE (onedir mode, no UPX)...
-echo This may take a minute...
+"venv\Scripts\python.exe" -m PyInstaller --clean --noconfirm LaptopProxy.spec
+if errorlevel 1 exit /b 1
 
-:: Build from spec file (all settings are in LaptopProxy.spec)
-:: --clean: Clean cache before build
-:: --noconfirm: Overwrite output without asking
-venv\Scripts\pyinstaller --clean --noconfirm LaptopProxy.spec
+powershell -NoProfile -Command "Compress-Archive -LiteralPath 'dist\Hotspot_Bypass_VPN_Windows' -DestinationPath 'dist\Hotspot_Bypass_VPN_Windows_Portable.zip' -Force"
+if errorlevel 1 exit /b 1
 
-echo.
-echo ========================================
-echo   BUILD COMPLETE!
-echo   Your software is in:
-echo   dist\Hotspot_Bypass_VPN_Windows\
-echo ========================================
-pause
+echo Portable build: dist\Hotspot_Bypass_VPN_Windows_Portable.zip
+certutil -hashfile "dist\Hotspot_Bypass_VPN_Windows_Portable.zip" SHA256
+if errorlevel 1 exit /b 1
+exit /b 0

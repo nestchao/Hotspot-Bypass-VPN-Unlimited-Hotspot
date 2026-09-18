@@ -27,7 +27,7 @@ Visit our website for:
 - **Global VPN (TUN) mode**: Captures 100% of Windows traffic (required for games like Roblox)
 - **Automatic setup**: Downloads wintun and tun2socks binaries on first run
 - **Health monitoring**: Automatic proxy health checks with 2-fail restart logic
-- **Console Bridge (ICS)**: Share the VPN connection with consoles/Macs via Windows Mobile Hotspot
+- **Console Bridge (ICS)**: Share the Windows VPN with consoles and other devices over a selected Ethernet adapter or Windows Mobile Hotspot
 - **Lightweight GUI**: Clean CustomTkinter interface
 
 ### Debug Tools (laptop_proxy/tools/)
@@ -57,7 +57,12 @@ Visit our website for:
 2. Navigate to `laptop_proxy/` on the laptop.
 3. Run `setup_venv.bat` (first time only).
 4. Run: `venv\Scripts\python.exe main.py`
-5. Select **Global VPN**, enter the Phone IP, and click **START**.
+5. Select **Global VPN**, enter the Phone IP, and click **Connect VPN**.
+
+### 4. Share with a Console
+1. Wait for the Windows VPN to show **Connected**.
+2. Under **Share with consoles & devices**, choose a connected Ethernet adapter or **Wi-Fi hotspot** and click **Start Sharing Network**.
+3. Connect the console with automatic IP/DNS and no proxy setting. See [the console guide](NON_APP_DEVICES.md) for troubleshooting and NAT limitations.
 
 ---
 
@@ -79,7 +84,7 @@ Visit our website for:
 Open in Android Studio and build the APK.
 
 ### Laptop App
-Navigate to `laptop_proxy/` and run `build_exe.bat`. The standalone `LaptopProxy.exe` will be generated in `dist/`. No Python installation required — the exe auto-requests Administrator rights for VPN tunnel setup.
+Navigate to `laptop_proxy/` and run `build_exe.bat`. The portable package is `laptop_proxy/dist/Hotspot_Bypass_VPN_Windows_Portable.zip`; extract the whole folder and run `Hotspot_Bypass_VPN_Windows.exe`. The packaged app requests Administrator rights for VPN and sharing setup.
 
 ---
 
