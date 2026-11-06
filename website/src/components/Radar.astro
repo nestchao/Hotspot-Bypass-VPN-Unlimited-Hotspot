@@ -1,0 +1,16 @@
+---
+// Concentric radar rings behind devices. "sweep" adds the rotating arc, "ping" the outward pulses.
+interface Props { id: string; sweep?: boolean; ping?: boolean; color?: 'signal' | 'violet'; rings?: number[] }
+const { id, sweep = true, ping = true, color = 'signal', rings = [150, 220, 290] } = Astro.props;
+const r = rings[rings.length - 1];
+---
+<div class="radar" aria-hidden="true">
+  <svg viewBox="0 0 640 640">
+    <defs><linearGradient id={id} x1="0" y1="0" x2="1" y2="1"><stop offset="0" style={`stop-color:var(--${color});stop-opacity:0`}/><stop offset="1" style={`stop-color:var(--${color});stop-opacity:.85`}/></linearGradient></defs>
+    {rings.map((ring) => <circle class="ring" cx="320" cy="320" r={ring}/>)}
+    {ping && [0, 1, 2].map(() => <circle class="ping" cx="320" cy="320" r="300"/>)}
+    {sweep && (
+      <g class="sweep"><path d={`M320 ${320 - r} A${r} ${r} 0 0 1 ${320 + r} 320`} fill="none" stroke={`url(#${id})`} stroke-width="2.5" stroke-linecap="round"/><circle cx={320 + r} cy="320" r="5" style={`fill:var(--${color})`}/></g>
+    )}
+  </svg>
+</div>

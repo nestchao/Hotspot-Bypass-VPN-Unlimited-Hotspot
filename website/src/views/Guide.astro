@@ -1,0 +1,73 @@
+---
+import Base from '../layouts/Base.astro';
+import { t, type Lang } from '../i18n';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const d = t(lang);
+const g = d.guide;
+const tabs = [
+  { key: 'host', icon: 'share', label: g.tabs.host, panel: g.panels.host },
+  { key: 'android', icon: 'android', label: g.tabs.android, panel: g.panels.android },
+  { key: 'windows', icon: 'laptop', label: g.tabs.windows, panel: g.panels.windows },
+  { key: 'console', icon: 'pad', label: g.tabs.console, panel: g.panels.console },
+];
+const copies = [
+  { label: g.copyLabels.ssid, value: 'DIRECT-HotspotBypass' },
+  { label: g.copyLabels.password, value: '87654321' },
+  { label: g.copyLabels.ip, value: '192.168.49.1' },
+  { label: g.copyLabels.port, value: '8080' },
+];
+---
+<Base lang={lang} page="/guide/" meta={d.meta.guide}>
+  <section class="page-head">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">{g.eyebrow}</span>
+        <h1>{g.title}</h1>
+        <p>{g.lede}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="page-body" id="guide">
+    <div class="wrap">
+      <div class="guide-grid">
+        <div class="tabs" role="tablist" aria-label={g.eyebrow}>
+          {tabs.map((tb, i) => (
+            <button class="tab" role="tab" type="button" id={`t-${tb.key}`} data-key={tb.key} aria-controls={`p-${tb.key}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>
+              <svg><use href={`#i-${tb.icon}`}/></svg><span>{tb.label}</span>
+            </button>
+          ))}
+        </div>
+        <div>
+          {tabs.map((tb, i) => (
+            <div class="panel" role="tabpanel" id={`p-${tb.key}`} aria-labelledby={`t-${tb.key}`} hidden={i !== 0}>
+              <p class="who" set:html={tb.panel.who} />
+              <ol class="steps">
+                {tb.panel.steps.map((st, n) => (
+                  <li data-n={n + 1}><div>
+                    <h3>{st.title}</h3>
+                    <p set:html={st.body} />
+                    {'copy' in st && st.copy && (
+                      <div class="copy-grid">
+                        {copies.map((c) => <button class="copy" type="button" data-copy={c.value}><small>{c.label}</small><span>{c.value}</span><i>{d.common.copy}</i></button>)}
+                      </div>
+                    )}
+                  </div></li>
+                ))}
+              </ol>
+              <div class="tip"><svg><use href="#i-warn"/></svg><p set:html={tb.panel.tip} /></div>
+              <div class="table-wrap">
+                <h3>{g.troubleTitle}</h3>
+                <table>
+                  <thead><tr><th scope="col">{g.issue}</th><th scope="col">{g.fix}</th></tr></thead>
+                  <tbody>{tb.panel.trouble.map(([issue, fix]) => <tr><td>{issue}</td><td set:html={fix} /></tr>)}</tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+</Base>

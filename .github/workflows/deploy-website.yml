@@ -3,10 +3,17 @@ name: Deploy Website
 on:
   push:
     branches: [master]
+    paths:
+      - 'website/**'
+      - '.github/workflows/deploy-website.yml'
   workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: deploy-website
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
@@ -18,12 +25,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-      - run: npm install
+          node-version: 24
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - run: npm ci
       - run: npm run build
       - uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: website/.vitepress/dist
+          publish_dir: website/dist
           publish_branch: gh-pages
           force_orphan: true

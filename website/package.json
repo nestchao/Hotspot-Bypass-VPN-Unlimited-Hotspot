@@ -1,10 +1,14 @@
 {
+  "name": "hotspot-bypass-website",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "vitepress dev",
-    "build": "vitepress build",
-    "preview": "vitepress preview"
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
   },
-  "devDependencies": {
-    "vitepress": "^1.6.3"
+  "dependencies": {
+    "astro": "7.4.2",
+    "qrcode": "1.5.4"
   }
 }
