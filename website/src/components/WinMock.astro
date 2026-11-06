@@ -1,0 +1,30 @@
+---
+// Drawing of the v6.0.0 Windows client ("Connect & Share"), built from the labels in laptop_proxy/main.py.
+import { t, type Lang } from '../i18n';
+interface Props { lang: Lang; focus: 'connect' | 'share' }
+const { lang, focus } = Astro.props;
+const w = t(lang).win;
+---
+<div class="winmock" role="img" aria-label={`${w.title}: ${w.c1title}, ${w.c2title}`}>
+  <div class="bar"><i></i><span>Hotspot Bypass VPN</span><span>–□×</span></div>
+  <div class="body">
+    <div class="head"><small>{w.tag}</small><b>{w.title}</b><p>{w.flow}</p></div>
+    <div class:list={['card', focus === 'connect' ? 'focus' : 'dim']}>
+      <span class="eb">{w.c1eyebrow}</span>
+      <span class="ct">{w.c1title}</span>
+      <div class="fields">
+        <label>{w.ip}<span>192.168.49.1</span></label>
+        <label>{w.port}<span>8080</span></label>
+      </div>
+      <div class="status"><i></i>{w.connected}</div>
+    </div>
+    <div class:list={['card', focus === 'share' ? 'focus' : 'dim']}>
+      <span class="eb">{w.c2eyebrow}</span>
+      <span class="ct">{w.c2title}</span>
+      <div class="seg"><span class="on">{w.wifi}</span><span>{w.eth}</span></div>
+      {focus === 'share'
+        ? <div class="status"><i></i>{w.sharing}</div>
+        : <div class="b">{w.share}</div>}
+    </div>
+  </div>
+</div>

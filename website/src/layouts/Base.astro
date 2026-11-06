@@ -1,0 +1,105 @@
+---
+import '../styles/global.css';
+import '../styles/site.css';
+import Icons from '../components/Icons.astro';
+import { t, href, asset, altPath, type Lang } from '../i18n';
+import { REPO, release } from '../data/release';
+
+interface Props { lang: Lang; page: string; meta: { title: string; desc: string } }
+const { lang, page, meta } = Astro.props;
+const d = t(lang);
+const site = Astro.site!.toString().replace(/\/$/, '');
+const canonical = site + href(lang, page);
+const nav = [
+  { key: 'features', path: '/#features', label: d.nav.features },
+  { key: 'guide', path: '/guide/', label: d.nav.guide },
+  { key: 'download', path: '/download/', label: d.nav.download },
+  { key: 'faq', path: '/faq/', label: d.nav.faq },
+];
+const current = (path: string) => (path === page ? 'page' : undefined);
+---
+<!doctype html>
+<html lang={lang === 'zh' ? 'zh-CN' : 'en'}
+  data-copy={d.common.copy} data-copied={d.common.copied} data-copied-val={d.common.copiedVal}
+  data-to-light={d.nav.toLight} data-to-dark={d.nav.toDark}
+  data-dl-android={d.common.dlAndroid} data-dl-windows={d.common.dlWindows} data-dl-generic={d.common.dlGeneric}
+  data-other={d.common.other} data-note-other={d.common.noteOther}
+  data-apk={release.files.apk.url} data-installer={release.files.installer.url} data-download-page={href(lang, '/download/')}>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{meta.title}</title>
+  <meta name="description" content={meta.desc}>
+  <link rel="canonical" href={canonical}>
+  <link rel="alternate" hreflang="en" href={site + href('en', page)}>
+  <link rel="alternate" hreflang="zh-CN" href={site + href('zh', page)}>
+  <link rel="alternate" hreflang="x-default" href={site + href('en', page)}>
+  <meta property="og:type" content="website">
+  <meta property="og:title" content={meta.title}>
+  <meta property="og:description" content={meta.desc}>
+  <meta property="og:url" content={canonical}>
+  <meta property="og:image" content={site + asset('images/app_logo.png')}>
+  <meta name="twitter:card" content="summary">
+  <meta name="theme-color" content="#0b0816" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#fbfaff" media="(prefers-color-scheme: light)">
+  <link rel="icon" href={asset('favicon.svg')} type="image/svg+xml">
+  <link rel="icon" href={asset('images/ic_launcher.webp')} type="image/webp">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+  <script is:inline>
+    // Apply the saved theme before first paint to avoid a flash.
+    try { var s = localStorage.getItem('hb-theme'); if (s === 'light' || s === 'dark') document.documentElement.setAttribute('data-theme', s); } catch (e) {}
+  </script>
+</head>
+<body>
+  <a class="skip" href="#main">{lang === 'zh' ? '跳到正文' : 'Skip to content'}</a>
+  <Icons />
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href={href(lang, '/')}><svg><use href="#i-logo"/></svg><span>Hotspot Bypass</span></a>
+      <nav class="nav" aria-label="Main">
+        {nav.map((n) => <a href={href(lang, n.path)} aria-current={current(n.path)}>{n.label}</a>)}
+      </nav>
+      <div class="top-right">
+        <button type="button" class="theme-btn" id="theme-btn" aria-label={d.nav.toDark}><svg class="sun"><use href="#i-sun"/></svg><svg class="moon"><use href="#i-moon"/></svg></button>
+        <a class="lang-link" href={altPath(lang, page === '/404/' ? '/' : page)} hreflang={lang === 'en' ? 'zh-CN' : 'en'} aria-label={d.nav.otherLangLabel} data-lang-switch>{d.nav.otherLang}</a>
+        <a class="btn-sm" href={href(lang, '/download/')}>{d.nav.download}</a>
+        <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="mobile-nav" aria-label={d.nav.menu}><svg class="open"><use href="#i-menu"/></svg></button>
+      </div>
+    </div>
+    <nav class="mobile-nav" id="mobile-nav" aria-label="Main" hidden>
+      <div class="wrap">
+        <a href={href(lang, '/')} aria-current={current('/')}>{lang === 'zh' ? '首页' : 'Home'}</a>
+        {nav.map((n) => <a href={href(lang, n.path)} aria-current={current(n.path)}>{n.label}</a>)}
+        <a href={REPO}>GitHub</a>
+      </div>
+    </nav>
+    <div class="progress" id="progress" aria-hidden="true"></div>
+  </header>
+
+  <main id="main">
+    <slot />
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <a class="brand" href={href(lang, '/')}><svg><use href="#i-logo"/></svg><span>Hotspot Bypass</span></a>
+      <nav aria-label="Footer">
+        <a href={href(lang, '/guide/')}>{d.nav.guide}</a>
+        <a href={href(lang, '/download/')}>{d.nav.download}</a>
+        <a href={href(lang, '/faq/')}>{d.nav.faq}</a>
+        <a href={REPO}>GitHub</a>
+        <a href={`${REPO}/releases`}>{d.footer.releases}</a>
+        <a href={`${REPO}/issues`}>{d.footer.issues}</a>
+      </nav>
+      <div class="legal"><span>{release.version}</span><span>{d.footer.license}</span></div>
+    </div>
+  </footer>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    import '../scripts/site';
+  </script>
+</body>
+</html>

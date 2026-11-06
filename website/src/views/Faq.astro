@@ -1,0 +1,31 @@
+---
+import Base from '../layouts/Base.astro';
+import FaqColumns from '../components/FaqColumns.astro';
+import Cta from '../components/Cta.astro';
+import { t, type Lang } from '../i18n';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const d = t(lang);
+const f = d.faq;
+---
+<Base lang={lang} page="/faq/" meta={d.meta.faq}>
+  <section class="page-head">
+    <div class="wrap">
+      <div class="faq-head" style="margin:0">
+        <div class="sec-head">
+          <span class="eyebrow">{f.eyebrow}</span>
+          <h1>{f.title}</h1>
+          <p set:html={f.lede} />
+        </div>
+        <label class="search" for="faq-q"><svg><use href="#i-search"/></svg><input id="faq-q" type="search" placeholder={f.search} aria-label={f.search} autocomplete="off"></label>
+      </div>
+    </div>
+  </section>
+  <section class="page-body faq" id="faq" style="border-top:0">
+    <div class="wrap">
+      <FaqColumns items={f.items} listId="faq-list" />
+      <p class="faq-empty" id="faq-empty" hidden>{f.empty}</p>
+    </div>
+  </section>
+  <Cta lang={lang} />
+</Base>

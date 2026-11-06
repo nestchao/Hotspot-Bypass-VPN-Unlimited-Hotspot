@@ -1,0 +1,29 @@
+---
+import QRCode from 'qrcode';
+import Radar from './Radar.astro';
+import { t, type Lang } from '../i18n';
+import { release } from '../data/release';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const c = t(lang).cta;
+// QR code is generated at build time, so no client library is needed.
+const qr = await QRCode.toString(release.files.apk.url, { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#0b0816', light: '#ffffff' } });
+---
+<section class="cta">
+  <Radar id="sw-cta" sweep={false} rings={[120, 200, 280]} />
+  <div class="wrap">
+    <div>
+      <h2>{c.title}</h2>
+      <p>{c.body}</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href={release.files.apk.url}><svg><use href="#i-android"/></svg><span><small>{c.dlFor}</small>Android</span></a>
+        <a class="btn btn-ghost" href={release.files.installer.url}><svg><use href="#i-windows"/></svg><span><small>{c.dlFor}</small>Windows</span></a>
+      </div>
+    </div>
+    <div class="qr">
+      <div class="code" set:html={qr} />
+      <b>{c.qrTitle}</b>
+      <span>{c.qrBody}</span>
+    </div>
+  </div>
+</section>

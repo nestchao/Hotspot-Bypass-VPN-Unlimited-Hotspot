@@ -1,0 +1,85 @@
+---
+import Base from '../layouts/Base.astro';
+import { t, type Lang } from '../i18n';
+import { release } from '../data/release';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const d = t(lang);
+const dl = d.download;
+const f = release.files;
+const cards = [
+  { key: 'apk', icon: 'android', file: f.apk, c: dl.cards.apk, main: true },
+  { key: 'installer', icon: 'windows', file: f.installer, c: dl.cards.installer, main: false },
+  { key: 'zip', icon: 'windows', file: f.zip, c: dl.cards.zip, main: false },
+];
+---
+<Base lang={lang} page="/download/" meta={d.meta.download}>
+  <section class="page-head">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">{dl.eyebrow} · {release.version} · {release.date[lang]}</span>
+        <h1>{dl.title}</h1>
+        <p>{dl.lede} <a href={release.notes}>{lang === 'zh' ? '查看发布说明' : 'Release notes'} →</a></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="page-body" id="download">
+    <div class="wrap">
+      <div class="dl-grid">
+        {cards.map((card) => (
+          <div class:list={['dl-card', { main: card.main }]}>
+            <span class="k"><svg><use href={`#i-${card.icon}`}/></svg>{card.c.kind}{card.main && <em>{dl.start}</em>}</span>
+            <h3>{card.c.title}</h3>
+            <ul>{card.c.reqs.map((r) => <li>{r}</li>)}</ul>
+            <div style="display:grid;gap:8px">
+              <a class:list={['btn', card.main ? 'btn-primary' : 'btn-ghost']} href={card.file.url}><svg><use href="#i-down"/></svg><span>{card.c.btn}</span></a>
+              <span class="file">{card.file.name}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div class="dl-more">
+        <div class="hashes">
+          <h3>{dl.hashTitle}</h3>
+          {cards.map((card) => <div class="hash-row"><b>{card.file.name}</b><code>{card.file.sha256}</code><button type="button" data-copy={card.file.sha256}>{d.common.copy}</button></div>)}
+          <p class="hash-how" set:html={dl.hashHow} />
+        </div>
+        <div class="defender">
+          <h3><svg><use href="#i-warn"/></svg><span>{dl.defender.title}</span></h3>
+          <p set:html={dl.defender.p1} />
+          <p set:html={dl.defender.p2} />
+        </div>
+      </div>
+
+      <div class="dl-extra">
+        <div class="box">
+          <h3>{dl.upgrade.title}</h3>
+          <ul>{dl.upgrade.items.map((i) => <li set:html={i} />)}</ul>
+        </div>
+        <div class="box" id="source">
+          <h3>{dl.build.title}</h3>
+          <h4>{dl.build.android}</h4>
+          <pre><code>git clone https://github.com/nestchao/Hotspot-Bypass-VPN-Unlimited-Hotspot.git
+cd Hotspot-Bypass-VPN-Unlimited-Hotspot
+./gradlew assembleDebug</code></pre>
+          <h4>{dl.build.windows}</h4>
+          <pre><code>cd Hotspot-Bypass-VPN-Unlimited-Hotspot/laptop_proxy
+pip install -r requirements.txt
+python main.py</code></pre>
+          <p set:html={dl.build.exe} />
+        </div>
+      </div>
+
+      <div class="changelog">
+        <h2>{dl.changelog.title}</h2>
+        <ol class="log">
+          {dl.changelog.entries.map((e) => (
+            <li><div class="ver-tag"><b>v{e.v}</b><span>{e.date}</span></div><ul>{e.items.map((i) => <li>{i}</li>)}</ul></li>
+          ))}
+        </ol>
+      </div>
+    </div>
+  </section>
+</Base>

@@ -1,0 +1,113 @@
+---
+import Base from '../layouts/Base.astro';
+import Radar from '../components/Radar.astro';
+import Phone from '../components/Phone.astro';
+import WinMock from '../components/WinMock.astro';
+import HowItWorks from '../components/HowItWorks.astro';
+import FaqColumns from '../components/FaqColumns.astro';
+import Cta from '../components/Cta.astro';
+import { t, href, asset, type Lang } from '../i18n';
+import { release } from '../data/release';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const d = t(lang);
+const s = d.showcase.items;
+const img = { host: asset('images/screenshot-host.jpg'), client: asset('images/screenshot-client.jpg') };
+const showcase = [
+  { key: 'host', icon: 'share', ...s.host },
+  { key: 'client', icon: 'android', ...s.client },
+  { key: 'win', icon: 'laptop', ...s.windows },
+  { key: 'console', icon: 'pad', ...s.console },
+];
+---
+<Base lang={lang} page="/" meta={d.meta.home}>
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-copy">
+        <a class="ver" href={release.notes}><b>{release.version}</b><span>{d.hero.pill}</span></a>
+        <h1>{d.hero.h1a} <span class="hl">{d.hero.h1b}</span></h1>
+        <p class="lede" set:html={d.hero.lede} />
+        <div class="cta-row">
+          <a class="btn btn-primary" id="hero-dl" href={href(lang, '/download/')}><svg><use href="#i-down"/></svg><span><small>{d.hero.free} · {release.version}</small><span id="hero-dl-text">{d.common.dlGeneric}</span></span></a>
+          <a class="btn btn-ghost" href={href(lang, '/guide/')}><span><small>{d.hero.newHere}</small><span>{d.hero.setup}</span></span><svg><use href="#i-arrow"/></svg></a>
+        </div>
+        <p class="os-note" id="os-note">{d.common.noteOther}</p>
+        <div class="works">
+          <span class="lbl">{d.hero.worksWith}</span>
+          <ul>
+            <li><svg><use href="#i-android"/></svg>Android</li>
+            <li><svg><use href="#i-windows"/></svg>Windows</li>
+            <li><svg><use href="#i-pad"/></svg>PS5 · Xbox · Switch</li>
+            <li><svg><use href="#i-tv"/></svg>{d.hero.tv}</li>
+          </ul>
+        </div>
+      </div>
+      <div class="hero-device">
+        <Radar id="sw-hero" />
+        <Phone src={img.host} alt={d.hero.imgAlt} eager />
+        <div class="badge b1" aria-hidden="true"><i><svg><use href="#i-share"/></svg></i><span><span>{d.hero.badge1}</span><b>DIRECT-HotspotBypass</b></span></div>
+        <div class="badge b2" aria-hidden="true"><i><svg><use href="#i-shield"/></svg></i><span><span>{d.hero.badge2}</span><b>192.168.49.1:8080</b></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="stats" aria-label={lang === 'zh' ? '关键数字' : 'Key numbers'}>
+    <div class="wrap">
+      {d.stats.map((st) => <div class="stat"><b data-count={st.n} data-suffix={st.suffix}>{st.n}{st.suffix ?? ''}</b><span>{st.label}</span></div>)}
+    </div>
+  </section>
+
+  <section class="pf" id="features">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">{d.showcase.eyebrow}</span>
+        <h2>{d.showcase.title}</h2>
+        <p>{d.showcase.lede}</p>
+      </div>
+      <div class="pf-grid">
+        <div class="pf-list" role="tablist" aria-label={d.nav.features}>
+          {showcase.map((it, i) => (
+            <button class="pf-item" role="tab" type="button" id={`f-${it.key}`} aria-controls={`v-${it.key}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>
+              <span class="ic"><svg><use href={`#i-${it.icon}`}/></svg></span><h3>{it.title}</h3><p>{it.body}</p><span class="bar"></span>
+            </button>
+          ))}
+        </div>
+        <div class="stage">
+          <Radar id="sw-stage" ping={false} color="violet" rings={[160, 240, 310]} />
+          <div class="view v-phone" id="v-host" role="tabpanel" aria-labelledby="f-host"><Phone src={img.host} alt={s.host.alt} /></div>
+          <div class="view v-phone" id="v-client" role="tabpanel" aria-labelledby="f-client" hidden><Phone src={img.client} alt={s.client.alt} /></div>
+          <div class="view v-win" id="v-win" role="tabpanel" aria-labelledby="f-win" hidden><WinMock lang={lang} focus="connect" /><p class="win-caption">{d.win.caption}</p></div>
+          <div class="view v-console" id="v-console" role="tabpanel" aria-labelledby="f-console" hidden><WinMock lang={lang} focus="share" /><p class="win-caption">{d.win.caption}</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="sec-head center">
+        <span class="eyebrow">{d.features.eyebrow}</span>
+        <h2>{d.features.title}</h2>
+        <p>{d.features.lede}</p>
+      </div>
+      <div class="feats">
+        {d.features.items.map((f) => <div class="feat"><span class="ic"><svg><use href={`#i-${f.icon}`}/></svg></span><h3>{f.title}</h3><p>{f.body}</p></div>)}
+      </div>
+    </div>
+  </section>
+
+  <HowItWorks lang={lang} />
+
+  <section class="faq-teaser">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">{d.faqTeaser.eyebrow}</span>
+        <h2>{d.faqTeaser.title}</h2>
+      </div>
+      <FaqColumns items={d.faq.items.slice(0, 3)} />
+      <a class="more" href={href(lang, '/faq/')}>{d.faqTeaser.more}</a>
+    </div>
+  </section>
+
+  <Cta lang={lang} />
+</Base>
