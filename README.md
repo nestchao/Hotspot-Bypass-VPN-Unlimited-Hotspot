@@ -4,10 +4,12 @@
 
 # Hotspot Bypass VPN
 
-**Share your phone's mobile data with every device. Skip the hotspot cap.**
+### 🔥 Turn your phone into an unlimited hotspot. No caps. No throttling. No root.
 
-Connect phones, laptops, PS5, Xbox, Switch and smart TVs to your Android phone over Wi-Fi Direct.<br>
-Your carrier sees normal phone traffic, not tethering. Free, open source, no root.
+**Your plan has unlimited data. Now your hotspot does too.**
+
+Share your phone's mobile data with phones, laptops, PS5, Xbox, Switch and smart TVs over Wi-Fi Direct.<br>
+Your carrier sees normal phone traffic, not tethering. 100% free and open source.
 
 [![Latest release](https://img.shields.io/github/v/release/nestchao/Hotspot-Bypass-VPN-Unlimited-Hotspot?style=flat-square&color=3ad8b2&label=release)](https://github.com/nestchao/Hotspot-Bypass-VPN-Unlimited-Hotspot/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/nestchao/Hotspot-Bypass-VPN-Unlimited-Hotspot/total?style=flat-square&color=8d72ff)](https://github.com/nestchao/Hotspot-Bypass-VPN-Unlimited-Hotspot/releases)
@@ -32,21 +34,23 @@ Your carrier sees normal phone traffic, not tethering. Free, open source, no roo
 
 ## Why Hotspot Bypass VPN?
 
-Your plan says "unlimited data", but the hotspot is capped, throttled or blocked. Hotspot Bypass VPN skips Android's built-in tethering. The host phone opens a **Wi-Fi Direct** network and a local **SOCKS5 proxy**, so traffic from other devices leaves the phone as if the phone made it.
+Your plan says "unlimited data", but the hotspot is capped at a few GB, throttled to a crawl, or blocked. **Hotspot Bypass VPN gives you an unlimited hotspot from the data you already pay for.** It skips Android's built-in tethering. The host phone opens a **Wi-Fi Direct** network and a local **SOCKS5 proxy**, so traffic from other devices leaves the phone as if the phone made it.
 
 |  | Normal hotspot | Hotspot Bypass VPN |
 |---|:---:|:---:|
-| Counts against your hotspot allowance | Yes | No* |
+| Hotspot data limit | Capped (often 5–50 GB) | **Unlimited*** |
+| Hotspot speed throttling | Common | **None*** |
 | Root needed | No | No |
 | Works for phones, laptops, consoles and TVs | Yes | Yes |
 | Full VPN on Windows (games, every app) | n/a | Yes |
 | UDP for games and voice chat | Yes | Yes |
 | Price | Carrier add-on | **Free** |
 
-<sub>*Results depend on how your carrier detects tethering. It works for most people, but no app can promise every carrier in every country.</sub>
+<sub>*Shared traffic uses your normal phone data, so it follows your phone plan's limits, not the hotspot allowance. Results depend on how your carrier detects tethering. It works for most people, but no app can promise every carrier in every country.</sub>
 
 ## ✨ Features
 
+- ♾️ **Unlimited hotspot.** No hotspot data cap and no tethering throttle. Use your full mobile data plan on every device.
 - 📡 **Wi-Fi Direct sharing.** A direct phone-to-device link instead of Android's hotspot.
 - 🎮 **Built for gaming.** UDP support for Roblox, Discord voice and other real-time traffic, with MTU tuned to 1350.
 - 👥 **Many devices at once.** Up to 256 connections in total and 128 per device, so one busy client can't hog the host.
@@ -171,7 +175,7 @@ Bug reports, ideas and pull requests are welcome. When reporting a problem, incl
 - 🐛 [Report a bug](https://github.com/nestchao/Hotspot-Bypass-VPN-Unlimited-Hotspot/issues/new)
 - 💬 [Browse issues](https://github.com/nestchao/Hotspot-Bypass-VPN-Unlimited-Hotspot/issues)
 
-If this app saved your data plan, consider giving it a ⭐. It helps other people find it.
+If this app gave you an unlimited hotspot, consider giving it a ⭐. It helps other people find it.
 
 ## ⚖️ Disclaimer
 
