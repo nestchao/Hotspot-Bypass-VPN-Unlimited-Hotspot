@@ -7,6 +7,9 @@
 /.idea/workspace.xml
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
+/.idea/deviceManager.xml
+/.idea/deploymentTargetSelector.xml
+/.idea/appInsightsSettings.xml
 .DS_Store
 /build
 /captures
@@ -22,8 +25,6 @@ laptop_proxy/build/
 laptop_proxy/__pycache__/
 laptop_proxy/tests/__pycache__/
 laptop_proxy/.pytest_cache/
-laptop_proxy/*.txt
-laptop_proxy/*.spec
 laptop_proxy/file_version_info.txt
 
 # Log files
@@ -35,5 +36,18 @@ laptop_proxy/file_version_info.txt
 # Generated connection summary
 host_client_connection_summary.txt
 
-# Stale project structure reference (manually maintained, always out of date)
+# Python / build output anywhere in the repo
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+windows_app/build/
+windows_app/dist/
+
+# Kotlin compiler daemon error dumps
+.kotlin/
+
+# One-off context dumps and stale structure notes
+full_context_*.txt
 structure.txt
+backup_before_*/
