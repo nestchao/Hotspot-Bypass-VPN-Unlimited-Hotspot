@@ -8,12 +8,14 @@ on:
       - '**.md'
   pull_request:
   workflow_dispatch:
+  # release.yml reuses these jobs so releases ship exactly what CI built.
+  workflow_call:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -29,8 +31,34 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Unit tests
         run: ./gradlew --no-daemon testDebugUnitTest
+      - name: Set up release signing (if secrets are configured)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::notice::No signing secrets configured; the release APK will be unsigned."
+            exit 0
+          fi
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+          {
+            echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks"
+            echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+            echo "ANDROID_KEY_ALIAS=$KEY_ALIAS"
+            echo "ANDROID_KEY_PASSWORD=$KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
       - name: Build debug and release APKs
         run: ./gradlew --no-daemon assembleDebug assembleRelease
+      - name: Check R8 kept the tun2socks engine
+        run: |
+          apk=$(ls app/build/outputs/apk/release/*.apk | head -n1)
+          unzip -o -q "$apk" 'classes*.dex' -d "$RUNNER_TEMP/dex"
+          for cls in Lengine/Engine\; Lengine/Key\; Lgo/Seq\; Lcom/example/hotspot_bypass_vpn/MyVpnServiceTun2Socks\; Lcom/example/hotspot_bypass_vpn/HostService\;; do
+            grep -q -a "$cls" "$RUNNER_TEMP"/dex/classes*.dex || { echo "::error::$cls missing from release APK"; exit 1; }
+          done
+          echo "Release APK keeps the tun2socks bindings and service classes."
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -38,14 +66,16 @@ jobs:
           name: android-test-reports
           path: app/build/reports/tests/
           if-no-files-found: ignore
-      - name: Upload debug APK
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: android-apks
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/release/*.apk
 
   laptop-client:
-    name: Windows laptop client (pytest)
+    name: Windows laptop client (pytest + portable build)
     runs-on: windows-latest
     defaults:
       run:
@@ -58,8 +88,17 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          if (Test-Path requirements-dev.txt) { pip install -r requirements-dev.txt } else { pip install -r requirements.txt }
+          pip install -r requirements-dev.txt
       - name: Run tests
         run: python -m pytest -v
       - name: Check the GUI module imports
         run: python -c "import main"
+      - name: Build portable package
+        shell: cmd
+        run: build_exe.bat
+      - name: Upload portable package
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-portable
+          path: laptop_proxy/dist/Hotspot_Bypass_VPN_Windows_Portable.zip
+          if-no-files-found: error

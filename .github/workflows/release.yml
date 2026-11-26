@@ -1,0 +1,51 @@
+name: Release
+
+# Push a tag like v7.0.0 to build everything with the CI workflow and attach
+# the APKs and the Windows portable package to a *draft* GitHub release.
+# Review the draft and publish it by hand.
+#
+# For an installable (signed) release APK, add these repository secrets:
+#   ANDROID_KEYSTORE_BASE64   base64 of your .jks keystore
+#   ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+# Without them the release APK is unsigned and only the debug APK installs.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Collect release files
+        run: |
+          mkdir -p release
+          tag="${GITHUB_REF_NAME}"
+          for apk in artifacts/android-apks/release/*.apk; do
+            case "$apk" in
+              *unsigned*) cp "$apk" "release/Hotspot_Bypass_VPN_${tag}_unsigned.apk" ;;
+              *) cp "$apk" "release/Hotspot_Bypass_VPN_${tag}.apk" ;;
+            esac
+          done
+          cp artifacts/android-apks/debug/*.apk "release/Hotspot_Bypass_VPN_${tag}_debug.apk"
+          cp artifacts/windows-portable/*.zip "release/Hotspot_Bypass_VPN_Windows_${tag}_Portable.zip"
+          (cd release && sha256sum * > SHA256SUMS.txt)
+          ls -l release
+      - uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          generate_release_notes: true
+          files: release/*
