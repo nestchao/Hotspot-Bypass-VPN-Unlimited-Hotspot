@@ -99,7 +99,7 @@ const zh: Dict = {
       android: {
         who: '在<b>需要上网的那部 Android 手机</b>上操作，它也安装同一个 App。',
         steps: [
-          { title: '连接主机的 Wi-Fi', body: '在 Wi-Fi 设置里连接 <code>DIRECT-HotspotBypass</code>，密码 <code>87654321</code>。' },
+          { title: '连接主机的 Wi-Fi', body: '在 Wi-Fi 设置里连接 <code>DIRECT-HotspotBypass</code>，密码见主机手机分享页面上显示的密码。' },
           { title: '填写主机地址', body: '打开<span class="ui">Connect (Client)</span>页，填写主机 IP <code>192.168.49.1</code> 和端口 <code>8080</code>。' },
           { title: '开启 VPN', body: '点 <span class="ui">START VPN</span>，并允许 Android 的 VPN 连接请求。状态栏出现钥匙图标即表示已连接。' },
         ],
@@ -114,7 +114,7 @@ const zh: Dict = {
         who: '适用于带 Wi-Fi 的 <b>Windows 10 / 11</b> 电脑，需要管理员权限。',
         steps: [
           { title: '安装 Windows 客户端', body: '运行安装包，或把便携版 ZIP <b>完整解压</b>后再运行。' },
-          { title: '连接主机的 Wi-Fi', body: '在 Windows 的 Wi-Fi 列表里连接 <code>DIRECT-HotspotBypass</code>，密码 <code>87654321</code>。' },
+          { title: '连接主机的 Wi-Fi', body: '在 Windows 的 Wi-Fi 列表里连接 <code>DIRECT-HotspotBypass</code>，密码见主机手机分享页面上显示的密码。' },
           { title: '连接 VPN', body: '在 <span class="ui">Phone IP Address</span> 填 <code>192.168.49.1</code>，<span class="ui">SOCKS5 Port</span> 填 <code>8080</code>，然后点 <span class="ui">Connect VPN</span>。首次运行会自动下载 wintun 和 tun2socks，等待显示 <b>Connected</b>。' },
         ],
         tip: 'Windows Defender 可能误报为 <code>Wacatac.H!ml</code>。这是误报，详情见下载页面。',

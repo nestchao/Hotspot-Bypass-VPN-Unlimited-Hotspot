@@ -299,10 +299,11 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
 
     @Composable
     fun SettingsScreen() {
-        val prefs = remember { getSharedPreferences("bypass_vpn_prefs", Context.MODE_PRIVATE) }
-        var ssid by remember { mutableStateOf(prefs.getString("wifi_ssid", "DIRECT-HotspotBypass") ?: "DIRECT-HotspotBypass") }
-        var password by remember { mutableStateOf(prefs.getString("wifi_password", "87654321") ?: "87654321") }
+        val saved = remember { HotspotCredentials.load(this) }
+        var ssid by remember { mutableStateOf(saved.ssid) }
+        var password by remember { mutableStateOf(saved.password) }
         var passwordVisible by remember { mutableStateOf(false) }
+        val passwordValid = HotspotCredentials.isValidPassword(password)
 
         Card(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -341,6 +342,15 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                         }
                     },
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    isError = !passwordValid,
+                    supportingText = {
+                        if (!passwordValid) {
+                            Text(
+                                "${HotspotCredentials.MIN_PASSWORD_LENGTH}-${HotspotCredentials.MAX_PASSWORD_LENGTH} " +
+                                    "characters (letters, digits, symbols)"
+                            )
+                        }
+                    },
                     shape = RoundedCornerShape(12.dp),
                     singleLine = true
                 )
@@ -349,10 +359,10 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
 
                 Button(
                     onClick = {
-                        prefs.edit()
-                            .putString("wifi_ssid", ssid)
-                            .putString("wifi_password", password)
-                            .apply()
+                        HotspotCredentials.save(
+                            this@MainActivity,
+                            HotspotCredentials.Credentials(HotspotCredentials.resolveSsid(ssid.trim()), password)
+                        )
                         if (isHostRunning.value) {
                             handleStopHost()
                             Handler(Looper.getMainLooper()).postDelayed({
@@ -361,6 +371,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                         }
                         showSettings.value = false
                     },
+                    enabled = passwordValid,
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
@@ -798,6 +809,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                 return
             }
             val intent = Intent(this, HostService::class.java).apply { putExtra("WIFI_BAND", selectedBand.intValue) }
+            HotspotCredentials.putExtras(intent, HotspotCredentials.load(this))
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 startForegroundService(intent)
             } else {

@@ -97,7 +97,7 @@ const en = {
       android: {
         who: 'Do this on <b>the Android phone that needs internet</b>. It runs the same app.',
         steps: [
-          { title: 'Join the host\'s Wi-Fi', body: 'In Wi-Fi settings, connect to <code>DIRECT-HotspotBypass</code> with password <code>87654321</code>.' },
+          { title: 'Join the host\'s Wi-Fi', body: 'In Wi-Fi settings, connect to <code>DIRECT-HotspotBypass</code> with the password shown on the host phone\'s Share screen.' },
           { title: 'Enter the host address', body: 'Open the <span class="ui">Connect (Client)</span> tab. Enter host IP <code>192.168.49.1</code> and port <code>8080</code>.' },
           { title: 'Start the VPN', body: 'Tap <span class="ui">START VPN</span> and accept Android\'s VPN request. A key icon in the status bar means you\'re connected.' },
         ],
@@ -112,7 +112,7 @@ const en = {
         who: 'For <b>Windows 10 or 11</b> laptops and PCs with Wi-Fi. Needs administrator rights.',
         steps: [
           { title: 'Install the Windows client', body: 'Run the installer, or <b>fully extract</b> the portable ZIP before running it.' },
-          { title: 'Join the host\'s Wi-Fi', body: 'Connect to <code>DIRECT-HotspotBypass</code> from the Windows Wi-Fi list, with password <code>87654321</code>.' },
+          { title: 'Join the host\'s Wi-Fi', body: 'Connect to <code>DIRECT-HotspotBypass</code> from the Windows Wi-Fi list, with the password shown on the host phone\'s Share screen.' },
           { title: 'Connect the VPN', body: 'Enter <span class="ui">Phone IP Address</span> <code>192.168.49.1</code> and <span class="ui">SOCKS5 Port</span> <code>8080</code>, then click <span class="ui">Connect VPN</span>. The first run downloads wintun and tun2socks automatically. Wait for <b>Connected</b>.' },
         ],
         tip: 'Windows Defender may flag the app as <code>Wacatac.H!ml</code>. It\'s a false positive. See the Download page for details.',

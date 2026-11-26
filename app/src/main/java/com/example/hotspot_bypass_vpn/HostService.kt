@@ -24,6 +24,7 @@ class HostService : Service() {
     private lateinit var p2pManager: WifiP2pManager
     private lateinit var p2pChannel: WifiP2pManager.Channel
     private var preferredBand = 1 // 1 for 2.4GHz, 2 for 5GHz
+    private var credentials: HotspotCredentials.Credentials? = null
 
     companion object {
         var isServiceRunning = false
@@ -44,6 +45,8 @@ class HostService : Service() {
             stopGroupAndService()
             return START_NOT_STICKY
         }
+
+        HotspotCredentials.fromExtras(intent)?.let { credentials = it }
 
         val notification = createNotification("Host is active")
 
@@ -103,9 +106,10 @@ class HostService : Service() {
         // Use the Builder to set the specific password (Android 10+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             try {
-                val prefs = getSharedPreferences("bypass_vpn_prefs", MODE_PRIVATE)
-                val ssid = prefs.getString("wifi_ssid", "DIRECT-HotspotBypass") ?: "DIRECT-HotspotBypass"
-                val password = prefs.getString("wifi_password", "87654321") ?: "87654321"
+                // Started without credentials (boot or system restart): read the saved ones.
+                val creds = credentials ?: HotspotCredentials.load(this).also { credentials = it }
+                val ssid = creds.ssid
+                val password = creds.password
 
                 // 2437MHz = 2.4GHz Channel 6 | 5180MHz = 5GHz Channel 36
                 val frequency = if (preferredBand == 1) 2437 else 5180
@@ -152,6 +156,7 @@ class HostService : Service() {
 
         val restartIntent = Intent(applicationContext, HostService::class.java).apply {
             putExtra("WIFI_BAND", savedBand)
+            credentials?.let { HotspotCredentials.putExtras(this, it) }
         }
 
         val pendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

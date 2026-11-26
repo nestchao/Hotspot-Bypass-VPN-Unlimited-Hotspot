@@ -79,7 +79,9 @@ Install the APK, open **Share (Host)**, pick **5 GHz** for gaming, and tap **STA
 
 | Wi-Fi name | Password | Proxy IP | Port |
 |---|---|---|---|
-| `DIRECT-HotspotBypass` | `87654321` | `192.168.49.1` | `8080` |
+| `DIRECT-HotspotBypass` | Shown on the host's Share screen | `192.168.49.1` | `8080` |
+
+Each install gets its own random Wi-Fi password (installs upgraded from older versions keep `87654321`). Change the name or password under **Settings** on the host phone.
 
 **2. Connect a device**
 

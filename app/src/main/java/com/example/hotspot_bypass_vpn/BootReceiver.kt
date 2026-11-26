@@ -15,7 +15,10 @@ class BootReceiver : BroadcastReceiver() {
             val wasVpnRunning = prefs.getBoolean("vpn_was_running", false)
 
             if (wasHostRunning) {
-                val hostIntent = Intent(context, HostService::class.java)
+                val hostIntent = HotspotCredentials.putExtras(
+                    Intent(context, HostService::class.java),
+                    HotspotCredentials.load(context)
+                )
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     context.startForegroundService(hostIntent)
                 } else {
