@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [master, 'claude/**']
+    paths-ignore:
+      - 'website/**'
+      - '**.md'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    name: Android app (unit tests + APK build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Unit tests
+        run: ./gradlew --no-daemon testDebugUnitTest
+      - name: Build debug and release APKs
+        run: ./gradlew --no-daemon assembleDebug assembleRelease
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-test-reports
+          path: app/build/reports/tests/
+          if-no-files-found: ignore
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+
+  laptop-client:
+    name: Windows laptop client (pytest)
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: laptop_proxy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if (Test-Path requirements-dev.txt) { pip install -r requirements-dev.txt } else { pip install -r requirements.txt }
+      - name: Run tests
+        run: python -m pytest -v
+      - name: Check the GUI module imports
+        run: python -c "import main"
