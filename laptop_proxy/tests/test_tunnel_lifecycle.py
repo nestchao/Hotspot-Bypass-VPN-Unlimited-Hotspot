@@ -8,30 +8,31 @@ import pytest
 pytest.importorskip("customtkinter")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 main = importlib.import_module("main")
+tunnel = importlib.import_module("tunnel")
 
 
 def test_first_failed_proxy_probe_marks_tunnel_unhealthy_and_stops_sharing(monkeypatch):
     events = []
-    tunnel = main.TunManager("192.168.49.1", 8080, 8081, lambda message: None,
+    tun = main.TunManager("192.168.49.1", 8080, 8081, lambda message: None,
                              on_tunnel_lost=lambda: events.append("lost"))
-    tunnel._monitoring_active = True
-    tunnel._connection_healthy = True
+    tun._monitoring_active = True
+    tun._connection_healthy = True
     sleeps = 0
 
     def sleep(_duration):
         nonlocal sleeps
         sleeps += 1
         if sleeps > 1:
-            tunnel._monitoring_active = False
+            tun._monitoring_active = False
 
     def disconnected(*_args, **_kwargs):
         raise OSError("proxy unreachable")
 
-    monkeypatch.setattr(main.time, "sleep", sleep)
-    monkeypatch.setattr(main.socket, "create_connection", disconnected)
-    tunnel._monitor_health()
+    monkeypatch.setattr(tunnel.time, "sleep", sleep)
+    monkeypatch.setattr(tunnel.socket, "create_connection", disconnected)
+    tun._monitor_health()
     assert events == ["lost"]
-    assert not tunnel._connection_healthy
+    assert not tun._connection_healthy
 
 
 def test_tunnel_loss_callback_stops_active_console_sharing():
