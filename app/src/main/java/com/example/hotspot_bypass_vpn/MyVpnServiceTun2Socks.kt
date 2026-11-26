@@ -20,6 +20,7 @@ class MyVpnServiceTun2Socks : VpnService() {
     private var isRunning = false
     private var proxyIp = ""
     private var proxyPort = 0
+    private var dnsServers = ClientDnsSettings.DEFAULT_SERVERS
     private var wakeLock: PowerManager.WakeLock? = null
     private var wifiLock: WifiManager.WifiLock? = null
 
@@ -65,13 +66,18 @@ class MyVpnServiceTun2Socks : VpnService() {
         if (intent != null) {
             proxyIp = intent.getStringExtra("PROXY_IP") ?: "192.168.49.1"
             proxyPort = intent.getIntExtra("PROXY_PORT", 8080)
+            dnsServers = ClientDnsSettings.parse(intent.getStringExtra(ClientDnsSettings.EXTRA_DNS_SERVERS))
+                ?: ClientDnsSettings.DEFAULT_SERVERS
             prefs.edit()
                 .putString("last_proxy_ip", proxyIp)
                 .putInt("last_proxy_port", proxyPort)
+                .putString("last_dns_servers", ClientDnsSettings.format(dnsServers))
                 .apply()
         } else {
             proxyIp = prefs.getString("last_proxy_ip", "192.168.49.1") ?: "192.168.49.1"
             proxyPort = prefs.getInt("last_proxy_port", 8080)
+            dnsServers = ClientDnsSettings.parse(prefs.getString("last_dns_servers", null))
+                ?: ClientDnsSettings.DEFAULT_SERVERS
             DebugUtils.log("Service restarted by system. Restored config: $proxyIp:$proxyPort")
         }
 
@@ -140,12 +146,14 @@ class MyVpnServiceTun2Socks : VpnService() {
                 .setMtu(1350) // LOWER MTU: 1350 is the "sweet spot" for gaming over proxies
                 .addAddress("10.0.0.2", 24)
                 .addRoute("0.0.0.0", 0) // Route EVERYTHING
-                // .addRoute("::", 0) // Uncomment if you want to block IPv6 leaks
+                // Claim IPv6 too, so it can't bypass the tunnel over another network. The
+                // interface has no IPv6 address, so apps fail fast and fall back to IPv4.
+                .addRoute("::", 0)
                 .addDisallowedApplication(packageName)
-                .addDnsServer("8.8.8.8")
-                .addDnsServer("1.1.1.1")
                 .setSession("Hotspot Bypass VPN")
                 .setBlocking(true) // Crucial for gaming stability
+            dnsServers.forEach { builder.addDnsServer(it) }
+            DebugUtils.log("DNS servers: ${ClientDnsSettings.format(dnsServers)}")
 
             vpnInterface = builder.establish()
 
@@ -258,6 +266,7 @@ class MyVpnServiceTun2Socks : VpnService() {
         val restartIntent = Intent(applicationContext, MyVpnServiceTun2Socks::class.java).apply {
             putExtra("PROXY_IP", savedIp)
             putExtra("PROXY_PORT", savedPort)
+            putExtra(ClientDnsSettings.EXTRA_DNS_SERVERS, ClientDnsSettings.format(dnsServers))
         }
 
         val pendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

@@ -304,6 +304,8 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
         var password by remember { mutableStateOf(saved.password) }
         var passwordVisible by remember { mutableStateOf(false) }
         val passwordValid = HotspotCredentials.isValidPassword(password)
+        var dnsText by remember { mutableStateOf(ClientDnsSettings.format(ClientDnsSettings.load(this))) }
+        val dnsServers = ClientDnsSettings.parse(dnsText)
 
         Card(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -356,6 +358,30 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                 )
 
                 Spacer(modifier = Modifier.height(20.dp))
+                Text("Connect (Client) DNS", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = dnsText,
+                    onValueChange = { dnsText = it },
+                    label = { Text("DNS servers") },
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = { Icon(Icons.Default.Dns, null) },
+                    isError = dnsServers == null,
+                    supportingText = {
+                        Text(
+                            if (dnsServers == null) {
+                                "1-${ClientDnsSettings.MAX_SERVERS} IPv4 addresses, separated by commas"
+                            } else {
+                                "Used the next time you start the VPN"
+                            }
+                        )
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
 
                 Button(
                     onClick = {
@@ -363,6 +389,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                             this@MainActivity,
                             HotspotCredentials.Credentials(HotspotCredentials.resolveSsid(ssid.trim()), password)
                         )
+                        dnsServers?.let { ClientDnsSettings.save(this@MainActivity, it) }
                         if (isHostRunning.value) {
                             handleStopHost()
                             Handler(Looper.getMainLooper()).postDelayed({
@@ -371,7 +398,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
                         }
                         showSettings.value = false
                     },
-                    enabled = passwordValid,
+                    enabled = passwordValid && dnsServers != null,
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
@@ -868,6 +895,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener 
         val intent = Intent(this, MyVpnServiceTun2Socks::class.java).apply {
             putExtra("PROXY_IP", ip)
             putExtra("PROXY_PORT", port)
+            putExtra(ClientDnsSettings.EXTRA_DNS_SERVERS, ClientDnsSettings.format(ClientDnsSettings.load(this@MainActivity)))
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent)
