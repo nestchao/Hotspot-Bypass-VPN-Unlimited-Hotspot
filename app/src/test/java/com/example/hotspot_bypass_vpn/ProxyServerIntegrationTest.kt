@@ -144,7 +144,38 @@ class ProxyServerIntegrationTest {
         assertTrue(proxy.metrics().activeByClient.isEmpty())
     }
 
-    private fun startProxy(coreThreads: Int, maxThreads: Int, perClient: Int): ProxyServer {
+    @Test
+    fun connectToHostLoopbackIsRefusedByDefault() {
+        val echo = TcpEchoServer().also { resources.add(it) }
+        val proxy = startProxy(coreThreads = 1, maxThreads = 4, perClient = 4, allowLoopbackTargets = false)
+
+        val socket = connectToProxy(proxy.localPort()).also { resources.add(it) }
+        socket.soTimeout = 2_000
+        negotiate(socket)
+        socket.getOutputStream().write(byteArrayOf(5, 1, 0, 1, 127, 0, 0, 1) + portBytes(echo.port))
+        socket.getOutputStream().flush()
+        val reply = readExactly(socket.getInputStream(), 10)
+
+        assertEquals("Expected 'connection not allowed by ruleset'", Socks5Parser.REPLY_NOT_ALLOWED, reply[1].toInt())
+    }
+
+    @Test
+    fun clientsOnTheHostItselfAreAccepted() {
+        val echo = TcpEchoServer().also { resources.add(it) }
+        // restrictToWifiDirect stays on (the production default); loopback clients must still work.
+        val proxy = startProxy(coreThreads = 1, maxThreads = 4, perClient = 4)
+
+        val tunnel = openTcpTunnel(proxy.localPort(), echo.port).also { resources.add(it) }
+        assertEcho(tunnel, "from-host")
+        assertEquals(0, proxy.metrics().rejectedConnections)
+    }
+
+    private fun startProxy(
+        coreThreads: Int,
+        maxThreads: Int,
+        perClient: Int,
+        allowLoopbackTargets: Boolean = true
+    ): ProxyServer {
         val proxy = ProxyServer(
             ProxyServer.Config(
                 port = 0,
@@ -158,7 +189,8 @@ class ProxyServerIntegrationTest {
                 tcpIdleTimeoutMs = 2_000,
                 udpTargetTimeoutMs = 500,
                 udpIdleTimeoutMs = 2_000,
-                udpCleanupIntervalMs = 100
+                udpCleanupIntervalMs = 100,
+                allowLoopbackTargets = allowLoopbackTargets
             )
         )
         servers.add(proxy)

@@ -14,6 +14,7 @@ internal object Socks5Parser {
 
     const val REPLY_SUCCEEDED = 0
     const val REPLY_GENERAL_FAILURE = 1
+    const val REPLY_NOT_ALLOWED = 2
     const val REPLY_CONNECTION_REFUSED = 5
     const val REPLY_COMMAND_NOT_SUPPORTED = 7
     const val REPLY_ADDRESS_NOT_SUPPORTED = 8

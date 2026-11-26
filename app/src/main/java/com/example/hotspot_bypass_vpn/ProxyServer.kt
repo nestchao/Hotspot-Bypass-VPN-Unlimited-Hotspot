@@ -62,7 +62,11 @@ class ProxyServer internal constructor(
         val tcpIdleTimeoutMs: Long = 600_000L,
         val udpTargetTimeoutMs: Int = 30_000,
         val udpIdleTimeoutMs: Long = 300_000L,
-        val udpCleanupIntervalMs: Long = 120_000L
+        val udpCleanupIntervalMs: Long = 120_000L,
+        /** Only serve clients that reached the proxy over Wi-Fi Direct (or from the host itself). */
+        val restrictToWifiDirect: Boolean = true,
+        /** Allow CONNECT / UDP targets on the host's loopback interface. Tests only. */
+        val allowLoopbackTargets: Boolean = false
     ) {
         init {
             require(port in 0..65535)
@@ -221,6 +225,16 @@ class ProxyServer internal constructor(
                         throw error
                     }
                     totalConnections.incrementAndGet()
+                    if (config.restrictToWifiDirect && !ProxyAccessPolicy.isAllowedClient(client)) {
+                        val local = client.localAddress
+                        rejectClient(
+                            client,
+                            client.inetAddress.hostAddress ?: "unknown",
+                            "not connected over Wi-Fi Direct (local=${local?.hostAddress}, " +
+                                "interface=${ProxyAccessPolicy.interfaceNameOf(local)})"
+                        )
+                        continue
+                    }
                     dispatchClient(executor, client)
                 } catch (error: SocketException) {
                     if (running.get()) log(ProxyLogLevel.ERROR, "Accept failed", error)
@@ -381,7 +395,13 @@ class ProxyServer internal constructor(
         activeTargetSockets.add(target)
         try {
             if (!running.get()) throw SocketException("Proxy server is stopping")
-            target.connect(InetSocketAddress(request.targetHost, request.targetPort), config.connectTimeoutMs)
+            val targetAddress = InetSocketAddress(request.targetHost, request.targetPort)
+            if (isBlockedTarget(targetAddress.address)) {
+                sendReply(output, Socks5Parser.REPLY_NOT_ALLOWED)
+                log(ProxyLogLevel.WARN, "[$clientId] Refused CONNECT to host-local address ${request.targetHost}")
+                return
+            }
+            target.connect(targetAddress, config.connectTimeoutMs)
             session = TcpSession(clientId, client, target)
             activeTcpSessions.add(session)
 
@@ -587,6 +607,9 @@ class ProxyServer internal constructor(
 
             val payload = packet.data.copyOfRange(target.headerLength, packet.length)
             val targetAddress = InetAddress.getByName(target.targetHost)
+            if (isBlockedTarget(targetAddress)) {
+                throw IOException("target ${target.targetHost} is a host-local address")
+            }
             val key = "${targetAddress.hostAddress}:${target.targetPort}"
             sendToTarget(key, payload, targetAddress, target.targetPort)
             lastActivity = System.currentTimeMillis()
@@ -692,6 +715,9 @@ class ProxyServer internal constructor(
             }
         }
     }
+
+    private fun isBlockedTarget(address: InetAddress?): Boolean =
+        !config.allowLoopbackTargets && ProxyAccessPolicy.isBlockedTarget(address)
 
     private fun sendReply(output: OutputStream, replyCode: Int, bindPort: Int = 0) {
         try {
