@@ -139,6 +139,7 @@ More answers: **[full FAQ](https://nestchao.github.io/Hotspot-Bypass-VPN-Unlimit
 git clone https://github.com/nestchao/Hotspot-Bypass-VPN-Unlimited-Hotspot.git
 cd Hotspot-Bypass-VPN-Unlimited-Hotspot
 ./gradlew assembleDebug
+./gradlew testDebugUnitTest   # unit + proxy integration tests
 ```
 
 **Windows client** (Python)
@@ -147,7 +148,12 @@ cd laptop_proxy
 pip install -r requirements.txt
 python main.py          # run as Administrator
 build_exe.bat           # optional: build the portable package
+
+pip install -r requirements-dev.txt
+python -m pytest        # tests
 ```
+
+CI runs the Android tests and APK builds and the Windows client tests on every push and pull request.
 
 **Website** (Astro)
 ```bash
@@ -162,6 +168,7 @@ npm run dev
 | Area | Implementation |
 |---|---|
 | Bypass method | SOCKS5 proxy on the host, reached over Wi-Fi Direct |
+| Proxy access | Only clients on the Wi-Fi Direct group (or the host itself); host loopback targets are refused |
 | Android client | `VpnService` + tun2socks, MTU 1350 |
 | Persistence | Foreground service, WakeLock, AlarmManager restart |
 | Connection limits | 256 total, 128 per client IP; 10-minute TCP and 5-minute UDP idle cleanup; 64 KB pipe buffers |
