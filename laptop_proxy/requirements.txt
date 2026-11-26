@@ -1,5 +1,5 @@
-pyinstaller
-customtkinter
-darkdetect
-pytest>=8.0
-pytest-mock>=3.12
+# Runtime + packaging dependencies for the Windows laptop client.
+# build_exe.bat installs these into its own venv before running PyInstaller.
+customtkinter>=5.2,<6
+darkdetect>=0.8
+pyinstaller>=6.0

@@ -1,0 +1,4 @@
+# Everything needed to run and test the laptop client.
+-r requirements.txt
+pytest>=8.0
+pytest-mock>=3.12
