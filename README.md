@@ -102,7 +102,7 @@ Each install gets its own random Wi-Fi password (installs upgraded from older ve
 SHA-256 hashes and the changelog are on the **[download page](https://nestchao.github.io/Hotspot-Bypass-VPN-Unlimited-Hotspot/download/)**.
 
 > [!IMPORTANT]
-> **Upgrading from v6 or earlier on Android:** from v7 the app has a new package ID (`io.github.nestchao.hotspotbypassvpn`), so it installs next to the old app instead of replacing it. Uninstall the old *Hotspot Bypass VPN* first. Your Wi-Fi name and password are not carried over; set them again under **Settings** if you changed them.
+> **Upgrading from v6 or earlier on Android:** from v7 the app has a new package ID (`io.github.nestchao.hotspotbypassvpn`), so it installs next to the old app instead of replacing it. Uninstall the old *Hotspot Bypass VPN* first. Settings are not carried over: the new app creates its own random Wi-Fi password, so devices that saved the old `DIRECT-HotspotBypass` network must forget it and join again with the password shown on the host (or set your old password under **Settings**).
 
 > [!NOTE]
 > Windows Defender may flag the Windows client as `Trojan:Win32/Wacatac.H!ml`. This is a machine-learning false positive: the client downloads helper files and changes routes and DNS, which looks like VPN hijacking. Verify the SHA-256 hash or run it from source. See [issue #11](https://github.com/nestchao/Hotspot-Bypass-VPN-Unlimited-Hotspot/issues/11).
