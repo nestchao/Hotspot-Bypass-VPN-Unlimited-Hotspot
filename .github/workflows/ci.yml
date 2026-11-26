@@ -96,9 +96,21 @@ jobs:
       - name: Build portable package
         shell: cmd
         run: build_exe.bat
-      - name: Upload portable package
+      - name: Build installer
+        shell: pwsh
+        run: |
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue)) {
+            choco install innosetup -y --no-progress
+            $env:PATH += ";${env:ProgramFiles(x86)}\Inno Setup 6"
+          }
+          $version = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME.TrimStart('v') } else { '0.0.0-ci' }
+          iscc "/DMyAppVersion=$version" laptop_proxy.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload Windows packages
         uses: actions/upload-artifact@v4
         with:
-          name: windows-portable
-          path: laptop_proxy/dist/Hotspot_Bypass_VPN_Windows_Portable.zip
+          name: windows-packages
+          path: |
+            laptop_proxy/dist/Hotspot_Bypass_VPN_Windows_Portable.zip
+            laptop_proxy/Output/HotspotBypassVPNSetup.exe
           if-no-files-found: error

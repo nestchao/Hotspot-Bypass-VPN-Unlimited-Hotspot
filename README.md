@@ -101,6 +101,9 @@ Each install gets its own random Wi-Fi password (installs upgraded from older ve
 
 SHA-256 hashes and the changelog are on the **[download page](https://nestchao.github.io/Hotspot-Bypass-VPN-Unlimited-Hotspot/download/)**.
 
+> [!IMPORTANT]
+> **Upgrading from v6 or earlier on Android:** from v7 the app has a new package ID (`io.github.nestchao.hotspotbypassvpn`), so it installs next to the old app instead of replacing it. Uninstall the old *Hotspot Bypass VPN* first. Your Wi-Fi name and password are not carried over; set them again under **Settings** if you changed them.
+
 > [!NOTE]
 > Windows Defender may flag the Windows client as `Trojan:Win32/Wacatac.H!ml`. This is a machine-learning false positive: the client downloads helper files and changes routes and DNS, which looks like VPN hijacking. Verify the SHA-256 hash or run it from source. See [issue #11](https://github.com/nestchao/Hotspot-Bypass-VPN-Unlimited-Hotspot/issues/11).
 
@@ -153,7 +156,9 @@ pip install -r requirements-dev.txt
 python -m pytest        # tests
 ```
 
-CI runs the Android tests and APK builds and the Windows client tests on every push and pull request.
+CI runs the Android tests and APK builds, the Windows client tests, and the Windows portable/installer builds on every push and pull request.
+
+**Releasing:** push a tag such as `v7.0.1`. The Release workflow builds everything and attaches `Hotspot-Bypass-VPN.apk`, `HotspotBypassVPNSetup.exe`, `Hotspot_Bypass_VPN_Windows.zip` and `SHA256SUMS.txt` to a draft release for you to review and publish. Add the `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD` repository secrets so the APK is signed. Bump `versionCode`/`versionName` in `app/build.gradle.kts` and the links in `website/src/data/release.ts` as part of the release.
 
 **Website** (Astro)
 ```bash
@@ -169,7 +174,7 @@ npm run dev
 |---|---|
 | Bypass method | SOCKS5 proxy on the host, reached over Wi-Fi Direct |
 | Proxy access | Only clients on the Wi-Fi Direct group (or the host itself); host loopback targets are refused |
-| Android client | `VpnService` + tun2socks, MTU 1350 |
+| Android client | `VpnService` + tun2socks, MTU 1350; IPv6 routed into the tunnel and dropped (no leaks); DNS servers configurable in Settings (default 8.8.8.8, 1.1.1.1) |
 | Persistence | Foreground service, WakeLock, AlarmManager restart |
 | Connection limits | 256 total, 128 per client IP; 10-minute TCP and 5-minute UDP idle cleanup; 64 KB pipe buffers |
 | Windows client | CustomTkinter UI, Wintun + tun2socks virtual adapter, health check every 15 s |
