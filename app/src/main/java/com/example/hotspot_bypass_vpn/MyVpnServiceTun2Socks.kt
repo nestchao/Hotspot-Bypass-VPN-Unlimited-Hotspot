@@ -108,12 +108,16 @@ class MyVpnServiceTun2Socks : VpnService() {
         try {
             vpnInterface?.close()
             vpnInterface = null
-        } catch (e: Exception) {}
+        } catch (e: Exception) {
+            DebugUtils.error("Error closing VPN interface during shutdown", e)
+        }
 
         // 2. Stop the native engine
         try {
             Engine.stop()
-        } catch (e: Exception) {}
+        } catch (e: Exception) {
+            DebugUtils.error("Error stopping tun2socks engine during shutdown", e)
+        }
 
         // 3. Remove foreground status and stop
         stopForeground(true)

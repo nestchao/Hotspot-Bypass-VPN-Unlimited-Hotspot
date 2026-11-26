@@ -37,7 +37,7 @@
             </intent-filter>
         </activity>
 
-        <!-- NEW: tun2socks VPN Service -->
+        <!-- Client mode: routes device traffic through tun2socks to the host proxy -->
         <service
             android:name=".MyVpnServiceTun2Socks"
             android:permission="android.permission.BIND_VPN_SERVICE"
@@ -53,22 +53,6 @@
                 android:value="VPN proxy using tun2socks" />
         </service>
 
-        <!-- KEEP: Original optimized service (optional backup) -->
-        <service
-            android:name=".MyVpnServiceOptimized"
-            android:permission="android.permission.BIND_VPN_SERVICE"
-            android:foregroundServiceType="specialUse"
-            android:exported="false"
-            android:stopWithTask="false"
-            android:enabled="false">
-            <intent-filter>
-                <action android:name="android.net.VpnService" />
-            </intent-filter>
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="VPN proxy for hotspot bypass" />
-        </service>
-
         <receiver
             android:name=".BootReceiver"
             android:enabled="true"
@@ -78,7 +62,7 @@
             </intent-filter>
         </receiver>
 
-        <!-- In AndroidManifest.xml -->
+        <!-- Share (host) mode: Wi-Fi Direct group + SOCKS5 proxy -->
         <service
             android:name=".HostService"
             android:enabled="true"

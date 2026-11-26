@@ -56,9 +56,6 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
-    // OkHttp for SOCKS proxy support
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-
     // Local AAR library - tun2socks
     implementation(files("libs/tun2socks-1.0.4.aar"))
 
