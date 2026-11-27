@@ -1,146 +1,352 @@
 package com.example.hotspot_bypass_vpn
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.runtime.Composable
+
+private val ButtonShape = RoundedCornerShape(8.dp)
+private val PillShape = RoundedCornerShape(percent = 50)
+
+/** Draws a 1dp hairline along the bottom (and optionally top) edge. */
+fun Modifier.hairlines(top: Boolean = false, bottom: Boolean = true, color: Color = AppColors.Divider): Modifier =
+    drawBehind {
+        val stroke = 1.dp.toPx()
+        if (top) drawLine(color, Offset(0f, stroke / 2), Offset(size.width, stroke / 2), stroke)
+        if (bottom) drawLine(color, Offset(0f, size.height - stroke / 2), Offset(size.width, size.height - stroke / 2), stroke)
+    }
 
 @Composable
-fun ConflictCard(message: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSystemInDarkTheme()) Color(0xFF3D0000) else Color(0xFFFFEBEE)
-        ),
-        border = BorderStroke(1.dp, Color.Red)
-    ) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Warning, contentDescription = null, tint = Color.Red)
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(message, fontSize = 13.sp, color = Color(0xFFB71C1C), fontWeight = FontWeight.Medium)
-        }
+fun LiveLabel(text: String = "Active") {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = AppColors.AccentSoft, modifier = Modifier.size(14.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(text, color = AppColors.AccentSoft, fontSize = 12.sp, letterSpacing = 0.02.em, style = AppText.Action)
     }
 }
 
+/** Two equal, left-aligned underline tabs on a hairline. */
 @Composable
-fun SetupSteps(steps: List<String>) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text("HOW IT WORKS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, letterSpacing = 1.sp)
-        Spacer(Modifier.height(8.dp))
-        steps.forEachIndexed { index, step ->
-            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalAlignment = Alignment.Top) {
-                Text("${index + 1}.", modifier = Modifier.width(26.dp), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                Text(step, modifier = Modifier.weight(1f), fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+fun ModeTabs(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+    Row(Modifier.fillMaxWidth().hairlines()) {
+        labels.forEachIndexed { index, label ->
+            val active = index == selected
+            Box(
+                Modifier
+                    .weight(1f)
+                    .selectable(selected = active, role = Role.Tab, onClick = { onSelect(index) })
+                    .drawBehind {
+                        if (active) {
+                            val h = 2.dp.toPx()
+                            drawRect(AppColors.Accent, topLeft = Offset(0f, size.height - h), size = size.copy(height = h))
+                        }
+                    }
+                    .padding(top = 8.dp, bottom = 13.dp)
+            ) {
+                Text(
+                    label,
+                    fontSize = 17.sp,
+                    fontWeight = AppText.Section.fontWeight,
+                    color = if (active) AppColors.Accent else AppColors.TabInactive
+                )
             }
         }
     }
 }
 
+/** Pill-shaped two-option selector (e.g. Wi-Fi band). */
 @Composable
-fun StatusCard(title: String, isActive: Boolean, activeColor: Color, icon: ImageVector) {
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(animation = tween(800, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
-        label = "alpha"
-    )
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            // Uses theme surface color
-            containerColor = if (isActive) activeColor.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(
-            width = if (isActive) 2.dp else 1.dp,
-            color = if (isActive) activeColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-        )
+fun SegmentedControl(options: List<String>, selected: Int, onSelect: (Int) -> Unit, enabled: Boolean = true) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .border(1.dp, AppColors.Outline, PillShape)
+            .alpha(if (enabled) 1f else 0.5f)
     ) {
-        Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+        options.forEachIndexed { index, option ->
+            val active = index == selected
             Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .background(if (isActive) activeColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f), CircleShape),
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .then(if (active) Modifier.border(1.dp, AppColors.Accent, PillShape) else Modifier)
+                    .selectable(selected = active, enabled = enabled, role = Role.RadioButton, onClick = { onSelect(index) }),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = if (isActive) Color.White else Color.Gray,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column {
                 Text(
-                    text = title,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = MaterialTheme.colorScheme.onSurface // Adapts to Black/White
+                    option,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (active) AppColors.Accent else AppColors.TextDisabled
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(if (isActive) activeColor.copy(alpha = alpha) else Color.Gray))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = if (isActive) "SERVICE RUNNING" else "NOT RUNNING",
-                        color = if (isActive) activeColor else Color.Gray,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
-                    )
-                }
             }
         }
     }
 }
 
 @Composable
-fun DebugLogSection(logs: List<String>) {
-    var showLogs by remember { mutableStateOf(false) }
-    val logBgColor = if (isSystemInDarkTheme()) Color(0xFF1E1E1E) else Color(0xFFE0E0E0)
-    val logTextColor = if (isSystemInDarkTheme()) Color(0xFF00E676) else Color(0xFF1B5E20)
+fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        shape = ButtonShape,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = AppColors.Accent,
+            contentColor = AppColors.OnAccent,
+            disabledContainerColor = AppColors.Accent.copy(alpha = 0.25f),
+            disabledContentColor = AppColors.OnAccent.copy(alpha = 0.7f)
+        ),
+        modifier = modifier.fillMaxWidth().height(56.dp)
+    ) {
+        Text(text, style = AppText.Button)
+    }
+}
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-        TextButton(onClick = { showLogs = !showLogs }) {
-            Icon(if (showLogs) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, null)
-            Text(if (showLogs) "Hide Debug Logs" else "Show Debug Logs")
+/** Quiet outlined button used for stop/disconnect. */
+@Composable
+fun SecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled,
+        shape = ButtonShape,
+        border = BorderStroke(1.dp, AppColors.OutlineStrong),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = AppColors.TextPrimary),
+        modifier = modifier.fillMaxWidth().height(56.dp)
+    ) {
+        Text(text, style = AppText.Button)
+    }
+}
+
+@Composable
+fun TextAction(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Text(
+        text,
+        style = AppText.Action,
+        modifier = modifier
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(vertical = 8.dp)
+    )
+}
+
+@Composable
+fun SectionHeading(title: String, modifier: Modifier = Modifier, action: (@Composable () -> Unit)? = null) {
+    Row(
+        modifier.fillMaxWidth().padding(bottom = 9.dp),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(title, style = AppText.Section)
+        action?.invoke()
+    }
+}
+
+@Composable
+fun Eyebrow(text: String, modifier: Modifier = Modifier) {
+    Text(text.uppercase(), style = AppText.Eyebrow, modifier = modifier.padding(bottom = 10.dp))
+}
+
+@Composable
+private fun AccentIconButton(icon: ImageVector, description: String, onClick: () -> Unit) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.size(44.dp),
+        colors = IconButtonDefaults.iconButtonColors(contentColor = AppColors.Accent)
+    ) {
+        Icon(icon, contentDescription = description, modifier = Modifier.size(19.dp))
+    }
+}
+
+/** One row of the connection-details list: label over value, with copy (and reveal) actions. */
+@Composable
+fun DetailRow(
+    label: String,
+    value: String,
+    onCopy: () -> Unit,
+    secret: Boolean = false,
+    revealed: Boolean = true,
+    onToggleReveal: () -> Unit = {},
+) {
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 66.dp).hairlines(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f).padding(vertical = 10.dp)) {
+            Text(label.uppercase(), style = AppText.RowLabel)
+            Spacer(Modifier.height(5.dp))
+            val hidden = secret && !revealed
+            Text(
+                if (hidden) "••••••••" else value,
+                style = AppText.RowValue,
+                letterSpacing = if (hidden) 0.1.em else AppText.RowValue.letterSpacing
+            )
         }
-        AnimatedVisibility(visible = showLogs) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .background(logBgColor, RoundedCornerShape(12.dp)) // Adaptive background
-                    .padding(12.dp)
-            ) {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    logs.asReversed().forEach { logLine ->
-                        Text(text = "➜ $logLine", fontSize = 11.sp, color = logTextColor) // Adaptive text
+        if (secret) {
+            AccentIconButton(
+                if (revealed) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                if (revealed) "Hide $label" else "Show $label",
+                onToggleReveal
+            )
+        }
+        AccentIconButton(Icons.Filled.ContentCopy, "Copy $label", onCopy)
+    }
+}
+
+/** Label above a flat outlined text field. */
+@Composable
+fun LabeledField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    placeholder: String? = null,
+    isError: Boolean = false,
+    supportingText: String? = null,
+    secret: Boolean = false,
+    revealed: Boolean = true,
+    onToggleReveal: () -> Unit = {},
+) {
+    Column(modifier.fillMaxWidth()) {
+        Text(label, style = AppText.FieldLabel)
+        Spacer(Modifier.height(9.dp))
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            enabled = enabled,
+            singleLine = true,
+            isError = isError,
+            shape = ButtonShape,
+            textStyle = AppText.RowValue.copy(fontSize = 16.sp),
+            placeholder = placeholder?.let { { Text(it, color = AppColors.TextDisabled) } },
+            keyboardOptions = KeyboardOptions(keyboardType = if (secret) KeyboardType.Password else keyboardType),
+            visualTransformation = if (secret && !revealed) PasswordVisualTransformation() else VisualTransformation.None,
+            trailingIcon = if (secret) {
+                {
+                    IconButton(onClick = onToggleReveal) {
+                        Icon(
+                            if (revealed) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                            contentDescription = if (revealed) "Hide $label" else "Show $label",
+                            tint = AppColors.Accent
+                        )
+                    }
+                }
+            } else null,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = AppColors.Accent,
+                unfocusedBorderColor = AppColors.Outline,
+                disabledBorderColor = AppColors.Divider,
+                errorBorderColor = AppColors.Error,
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                disabledContainerColor = Color.Transparent,
+                cursorColor = AppColors.Accent,
+                focusedTextColor = AppColors.TextPrimary,
+                unfocusedTextColor = AppColors.TextPrimary,
+                disabledTextColor = AppColors.TextDisabled,
+            ),
+            modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 52.dp)
+        )
+        if (supportingText != null) {
+            Spacer(Modifier.height(6.dp))
+            Text(supportingText, style = AppText.Body, fontSize = 12.sp, color = if (isError) AppColors.Error else AppColors.TextSecondary)
+        }
+    }
+}
+
+/** Inline notice, e.g. when the other mode is already running. */
+@Composable
+fun Notice(text: String, modifier: Modifier = Modifier, color: Color = AppColors.Warning) {
+    Row(modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.Top) {
+        Icon(Icons.Outlined.Info, contentDescription = null, tint = color, modifier = Modifier.size(18.dp).padding(top = 1.dp))
+        Spacer(Modifier.width(10.dp))
+        Text(text, style = AppText.Body, color = color)
+    }
+}
+
+/** Collapsible activity log with time column. */
+@Composable
+fun ActivityLog(entries: List<LogEntry>, expanded: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxWidth()) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Button, onClick = onToggle)
+                .hairlines()
+                .padding(vertical = 13.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Activity log", style = AppText.Action, fontSize = 15.sp)
+            Icon(
+                if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                contentDescription = if (expanded) "Hide activity log" else "Show activity log",
+                tint = AppColors.Accent
+            )
+        }
+        AnimatedVisibility(visible = expanded) {
+            Column(Modifier.fillMaxWidth().padding(vertical = 14.dp)) {
+                if (entries.isEmpty()) {
+                    Text("Nothing yet.", style = AppText.Log)
+                } else {
+                    entries.asReversed().take(LOG_LINES_SHOWN).forEach { entry ->
+                        Row(Modifier.padding(bottom = 6.dp)) {
+                            Text(entry.time, style = AppText.Log, color = AppColors.AccentMuted, modifier = Modifier.width(48.dp))
+                            Text(entry.message, style = AppText.Log)
+                        }
                     }
                 }
             }
@@ -148,34 +354,24 @@ fun DebugLogSection(logs: List<String>) {
     }
 }
 
+private const val LOG_LINES_SHOWN = 60
+
+/** Brief confirmation shown at the bottom of the screen (e.g. "Password copied"). */
 @Composable
-fun InfoRow(label: String, value: String) {
-    val clipboardManager = LocalClipboardManager.current
-    Row(modifier = Modifier.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(label.uppercase(), fontSize = 10.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
-            Text(
-                value,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 15.sp,
-                color = MaterialTheme.colorScheme.onSurface // Dynamic color
-            )
-        }
-        IconButton(
-            onClick = {
-                clipboardManager.setText(AnnotatedString(value))
-            },
-            modifier = Modifier
-                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f), CircleShape) // Subtle contrast
-                .size(36.dp)
-        ) {
-            Icon(
-                Icons.Default.ContentCopy,
-                contentDescription = "Copy $label",
-                modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-        }
-    }
+fun CopyToast(message: String, modifier: Modifier = Modifier) {
+    Text(
+        message,
+        textAlign = TextAlign.Center,
+        style = AppText.Action,
+        color = AppColors.TextPrimary,
+        modifier = modifier
+            .fillMaxWidth()
+            .background(AppColors.Surface, ButtonShape)
+            .border(1.dp, Color(0xFF314147), ButtonShape)
+            .padding(horizontal = 16.dp, vertical = 13.dp)
+    )
 }
+
+/** Vertical gap helper to keep spacing values readable at call sites. */
+@Composable
+fun Gap(height: Dp) = Spacer(Modifier.height(height))

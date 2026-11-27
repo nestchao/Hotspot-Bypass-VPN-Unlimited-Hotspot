@@ -62,6 +62,21 @@ android {
     buildFeatures {
         compose = true
     }
+
+    testOptions {
+        unitTests {
+            // Robolectric (screenshot tests) needs merged Android resources.
+            isIncludeAndroidResources = true
+            all {
+                // ./gradlew testDebugUnitTest -PrecordScreenshots rewrites
+                // app/src/test/screenshots/*.png; otherwise the screenshot tests
+                // still render every screen (catching crashes) without writing files.
+                if (project.hasProperty("recordScreenshots")) {
+                    it.systemProperty("roborazzi.test.record", "true")
+                }
+            }
+        }
+    }
 }
 
 dependencies {
@@ -83,6 +98,13 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
     testImplementation(libs.junit)
+    testImplementation(libs.androidx.junit)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }

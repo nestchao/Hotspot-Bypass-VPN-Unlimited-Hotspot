@@ -1,7 +1,8 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Theme.HotspotBypassVPN" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Optional: Ensure status bar colors match your Compose theme -->
+<resources>
+    <!-- Dark-only theme; Compose draws the UI (see Theme.kt). The window
+         background matches it so there is no white flash at launch. -->
+    <style name="Theme.HotspotBypassVPN" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:windowBackground">@color/app_background</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>

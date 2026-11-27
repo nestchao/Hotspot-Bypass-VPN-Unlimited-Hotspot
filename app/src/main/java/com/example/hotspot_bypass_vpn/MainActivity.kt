@@ -9,7 +9,10 @@ import android.os.Bundle
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.ui.Modifier
@@ -35,8 +38,14 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener,
     private lateinit var vm: MainViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+        )
         super.onCreate(savedInstanceState)
         vm = ViewModelProvider(this)[MainViewModel::class.java]
+        vm.savedCredentials.value = HotspotCredentials.load(this)
+        vm.dnsServers.value = ClientDnsSettings.load(this)
         manager = getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager
         channel = manager.initialize(this, mainLooper, null)
 
@@ -52,6 +61,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener,
         checkPermissions()
 
         setContent {
+            BackHandler(enabled = vm.showSettings.value) { vm.showSettings.value = false }
             BypassVPNTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -64,7 +74,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener,
     }
 
     override fun reconnectVpn() {
-        vm.logState.add("Reconnecting VPN...")
+        vm.log("Reconnecting VPN…")
         val stopIntent = Intent(this, MyVpnServiceTun2Socks::class.java).apply {
             action = MyVpnServiceTun2Socks.ACTION_STOP
         }
@@ -73,7 +83,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener,
             Thread.sleep(2000)
             runOnUiThread {
                 startVpnService(vm.clientIp.value, vm.clientPort.value.toIntOrNull() ?: 8080)
-                vm.logState.add("VPN reconnected")
+                vm.log("VPN reconnected")
             }
         }
     }
@@ -86,6 +96,9 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener,
     override fun saveSettings(credentials: HotspotCredentials.Credentials, dnsServers: List<String>) {
         HotspotCredentials.save(this, credentials)
         ClientDnsSettings.save(this, dnsServers)
+        vm.savedCredentials.value = credentials
+        vm.dnsServers.value = dnsServers
+        vm.log("Settings saved")
         if (vm.isHostRunning.value) {
             stopHost()
             Handler(Looper.getMainLooper()).postDelayed({
@@ -109,7 +122,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener,
                 startService(intent)
             }
             vm.isHostRunning.value = true
-            vm.logState.add("Starting Host Service...")
+            vm.log("Starting to share…")
             saveServiceState(hostRunning = true)
         }
     }
@@ -119,7 +132,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener,
         startService(intent)
         vm.hostInfoState.value = null
         vm.isHostRunning.value = false
-        vm.logState.add("Host Service Stopped.")
+        vm.log("Sharing stopped")
         saveServiceState(hostRunning = false)
     }
 
@@ -151,7 +164,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener,
         val intent = Intent(this, MyVpnServiceTun2Socks::class.java).apply { action = MyVpnServiceTun2Socks.ACTION_STOP }
         startService(intent)
         vm.isClientRunning.value = false
-        vm.logState.add("VPN Client Stopped.")
+        vm.log("VPN stopped")
 
         // FIX: Use vpnRunning = false
         saveServiceState(vpnRunning = false)
@@ -169,7 +182,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener,
             startService(intent)
         }
         vm.isClientRunning.value = true
-        vm.logState.add("VPN Client Starting...")
+        vm.log("Starting VPN to ${ip}:${port}…")
 
         // FIX: Use vpnRunning instead of hostRunning
         saveServiceState(vpnRunning = true)
@@ -186,8 +199,8 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener,
             vm.hostInfoState.value = HostInfo(
                 ssid = group.networkName ?: "Unknown",
                 pass = group.passphrase ?: "N/A",
-                ip = "192.168.49.1",
-                port = "8080"
+                ip = HOST_PROXY_IP,
+                port = HOST_PROXY_PORT
             )
             vm.isHostRunning.value = true
         } else if (!isServiceRunning(HostService::class.java)) {
@@ -246,7 +259,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener,
 
     private val logReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            intent?.getStringExtra("message")?.let { vm.logState.add(it) }
+            intent?.getStringExtra("message")?.let { vm.log(it) }
         }
     }
 
@@ -315,7 +328,7 @@ class MainActivity : ComponentActivity(), WifiP2pManager.ConnectionInfoListener,
                 }
                 manager.requestConnectionInfo(channel, this)
             } catch (e: SecurityException) {
-                vm.logState.add("Sync error: Permission denied")
+                vm.log("Could not read Wi-Fi Direct state: permission denied")
             }
         }
     }

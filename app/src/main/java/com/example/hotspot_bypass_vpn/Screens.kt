@@ -1,259 +1,334 @@
 package com.example.hotspot_bypass_vpn
 
-import androidx.compose.animation.*
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.delay
 
-@OptIn(ExperimentalMaterial3Api::class)
+const val HOST_PROXY_IP = "192.168.49.1"
+const val HOST_PROXY_PORT = "8080"
+
 @Composable
 fun MainScreen(vm: MainViewModel, actions: MainActions) {
-    Scaffold(
-        topBar = {
-            if (vm.showSettings.value) {
-                CenterAlignedTopAppBar(
-                    title = { Text("Settings", fontWeight = FontWeight.Black, fontSize = 18.sp) },
-                    navigationIcon = {
-                        IconButton(onClick = { vm.showSettings.value = false }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                        }
-                    },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
-                        titleContentColor = MaterialTheme.colorScheme.primary
-                    )
-                )
-            } else {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Image(
-                                painter = painterResource(id = R.drawable.app_logo),
-                                contentDescription = "App Logo",
-                                modifier = Modifier.size(32.dp).clip(RoundedCornerShape(4.dp))
-                            )
-                            Spacer(Modifier.width(12.dp))
-                            Column {
-                                Text("BYPASS VPN", fontWeight = FontWeight.Black, fontSize = 18.sp)
-                                Text(
-                                    when {
-                                        vm.isHostRunning.value -> "Host service running"
-                                        vm.isClientRunning.value -> "VPN service running"
-                                        else -> "Ready to connect"
-                                    },
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { vm.showSettings.value = true }) {
-                            Icon(Icons.Default.Settings, contentDescription = "Settings")
-                        }
-                    },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
-                        titleContentColor = MaterialTheme.colorScheme.primary
-                    )
-                )
-            }
+    var toast by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(toast) {
+        if (toast != null) {
+            delay(1800)
+            toast = null
         }
-    ) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
-            if (vm.showSettings.value) {
-                SettingsScreen(vm, actions)
-            } else {
-            TabRow(
-                selectedTabIndex = vm.selectedTab.intValue,
-                containerColor = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.primary,
-                divider = {},                  // Removes the thin gray line for a cleaner look
-                indicator = { tabPositions ->
-                    if (vm.selectedTab.intValue < tabPositions.size) {
-                        TabRowDefaults.SecondaryIndicator(
-                            modifier = Modifier.tabIndicatorOffset(tabPositions[vm.selectedTab.intValue]),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-            ) {
-                // Tab 1: Share (Host)
-                Tab(
-                    selected = vm.selectedTab.intValue == 0,
-                    onClick = { vm.selectedTab.intValue = 0 },
-                    text = {
-                        Text(
-                            "Share (Host)",
-                            // Use Theme primary color instead of hardcoded CyberTeal
-                            color = if (vm.selectedTab.intValue == 0) MaterialTheme.colorScheme.primary else Color.Gray,
-                            fontWeight = if (vm.selectedTab.intValue == 0) FontWeight.Bold else FontWeight.Normal
-                        )
-                    },
-                    icon = {
-                        Icon(
-                            Icons.Default.Share,
-                            contentDescription = null,
-                            tint = if (vm.selectedTab.intValue == 0) MaterialTheme.colorScheme.primary else Color.Gray
-                        )
-                    }
-                )
+    }
+    val clipboard = LocalClipboardManager.current
+    val copy: (String, String) -> Unit = { label, value ->
+        clipboard.setText(AnnotatedString(value))
+        toast = "$label copied"
+    }
 
-                // Tab 2: Connect (Client)
-                Tab(
-                    selected = vm.selectedTab.intValue == 1,
-                    onClick = { vm.selectedTab.intValue = 1 },
-                    text = {
-                        Text(
-                            "Connect (Client)",
-                            color = if (vm.selectedTab.intValue == 1) MaterialTheme.colorScheme.primary else Color.Gray,
-                            fontWeight = if (vm.selectedTab.intValue == 1) FontWeight.Bold else FontWeight.Normal
-                        )
-                    },
-                    icon = {
-                        Icon(
-                            Icons.Default.VpnLock,
-                            contentDescription = null,
-                            tint = if (vm.selectedTab.intValue == 1) MaterialTheme.colorScheme.primary else Color.Gray
-                        )
-                    }
-                )
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                if (vm.selectedTab.intValue == 0) {
-                    HostModeView(vm, actions)
-                } else {
-                    ClientModeView(vm, actions)
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                DebugLogSection(vm.logState)
-            }
-            }
+    Box(Modifier.fillMaxSize().background(AppColors.Background)) {
+        if (vm.showSettings.value) {
+            SettingsScreen(vm, actions, onBack = { vm.showSettings.value = false })
+        } else {
+            HomeScreen(vm, actions, copy)
+        }
+        toast?.let {
+            CopyToast(
+                it,
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(horizontal = 24.dp, vertical = 22.dp)
+            )
         }
     }
 }
 
+@Composable
+private fun HomeScreen(vm: MainViewModel, actions: MainActions, copy: (String, String) -> Unit) {
+    var logExpanded by rememberSaveable { mutableStateOf(false) }
+    Column(Modifier.fillMaxSize().statusBarsPadding()) {
+        // Fixed header and tabs; only the content below scrolls.
+        Column(Modifier.padding(horizontal = 24.dp)) {
+            Row(Modifier.fillMaxWidth().height(56.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Bypass VPN", style = AppText.Brand)
+                Spacer(Modifier.weight(1f))
+                when {
+                    vm.isHostRunning.value -> LiveLabel("Sharing")
+                    vm.isClientRunning.value -> LiveLabel("Connected")
+                }
+                IconButton(onClick = { vm.showSettings.value = true }) {
+                    Icon(Icons.Outlined.Settings, contentDescription = "Settings", tint = AppColors.TabInactive)
+                }
+            }
+            Gap(18.dp)
+            ModeTabs(listOf("Share", "Connect"), vm.selectedTab.intValue) { vm.selectedTab.intValue = it }
+        }
+        Column(
+            Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .navigationBarsPadding()
+                .imePadding()
+                .padding(horizontal = 24.dp)
+        ) {
+            Gap(28.dp)
+            if (vm.selectedTab.intValue == 0) ShareView(vm, actions, copy) else ConnectView(vm, actions)
+            Gap(20.dp)
+            ActivityLog(vm.logState, logExpanded, onToggle = { logExpanded = !logExpanded })
+            Gap(32.dp)
+        }
+    }
+}
 
 @Composable
-fun SettingsScreen(vm: MainViewModel, actions: MainActions) {
-    val context = LocalContext.current
-    val saved = remember { HotspotCredentials.load(context) }
-    var ssid by remember { mutableStateOf(saved.ssid) }
-    var password by remember { mutableStateOf(saved.password) }
-    var passwordVisible by remember { mutableStateOf(false) }
+fun ShareView(vm: MainViewModel, actions: MainActions, copy: (String, String) -> Unit) {
+    val sharing = vm.isHostRunning.value
+    val clientActive = vm.isClientRunning.value
+    val band = if (vm.selectedBand.intValue == 2) "5" else "2.4"
+    var revealed by rememberSaveable { mutableStateOf(true) }
+
+    Text(if (sharing) "Your connection is live" else "Share your connection", style = AppText.Headline)
+    Gap(13.dp)
+    Text(
+        if (sharing) "Sharing on $band GHz. Use the details below on each device."
+        else "Create a private Wi-Fi network that your other devices use to reach this phone's data.",
+        style = AppText.Lede
+    )
+    Gap(24.dp)
+
+    if (clientActive) {
+        Notice("This phone is connected to another host. Disconnect on the Connect tab before sharing.")
+        Gap(16.dp)
+    }
+
+    if (!sharing) {
+        Text("Wi-Fi band", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = AppColors.TextSubtle)
+        Gap(13.dp)
+        SegmentedControl(
+            options = listOf("2.4 GHz", "5 GHz"),
+            selected = vm.selectedBand.intValue - 1,
+            onSelect = { actions.selectBand(it + 1) },
+            enabled = !clientActive
+        )
+        Gap(10.dp)
+        Text("5 GHz is faster. 2.4 GHz reaches further and suits older devices.", style = AppText.Body, fontSize = 12.sp)
+        Gap(28.dp)
+        PrimaryButton("Start sharing", onClick = actions::startHost, enabled = !clientActive)
+    } else {
+        SecondaryButton("Stop sharing", onClick = actions::stopHost)
+    }
+
+    Gap(32.dp)
+    val info = vm.hostInfoState.value
+    val creds = vm.savedCredentials.value
+    val details = listOf(
+        "Network" to (info?.ssid ?: creds.ssid),
+        "Password" to (info?.pass ?: creds.password),
+        "Proxy IP" to (info?.ip ?: HOST_PROXY_IP),
+        "Port" to (info?.port ?: HOST_PROXY_PORT),
+    )
+    SectionHeading("Connection details") {
+        TextAction("Copy all", onClick = {
+            copy("All details", details.joinToString("\n") { (label, value) -> "$label: $value" })
+        })
+    }
+    if (!sharing) {
+        Text("Devices can join once sharing starts.", style = AppText.Body)
+        Gap(12.dp)
+    }
+    Column(Modifier.fillMaxWidth().hairlines(top = true, bottom = false).alpha(if (sharing) 1f else 0.62f)) {
+        details.forEach { (label, value) ->
+            val secret = label == "Password"
+            DetailRow(
+                label = label,
+                value = value,
+                onCopy = { copy(label, value) },
+                secret = secret,
+                revealed = revealed,
+                onToggleReveal = { revealed = !revealed }
+            )
+        }
+    }
+}
+
+@Composable
+fun ConnectView(vm: MainViewModel, actions: MainActions) {
+    val connected = vm.isClientRunning.value
+    val hostActive = vm.isHostRunning.value
+
+    Eyebrow("Client mode")
+    Text(if (connected) "You’re connected" else "Connect through a host", style = AppText.Headline)
+    Gap(13.dp)
+    Text(
+        if (connected) "This phone’s traffic now goes through the host’s mobile data."
+        else "Enter the proxy details shown on the host phone.",
+        style = AppText.Lede
+    )
+    Gap(24.dp)
+
+    if (hostActive) {
+        Notice("This phone is sharing its connection. Stop sharing on the Share tab before connecting.")
+        Gap(16.dp)
+    }
+
+    if (connected) {
+        Row(
+            Modifier.fillMaxWidth().hairlines(top = true).padding(vertical = 20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = AppColors.Accent, modifier = Modifier.size(26.dp))
+            Spacer(Modifier.width(16.dp))
+            Column {
+                Text("HOST", style = AppText.RowLabel)
+                Gap(4.dp)
+                Text("${vm.clientIp.value} : ${vm.clientPort.value}", style = AppText.RowValue, fontSize = 18.sp)
+            }
+        }
+        Gap(28.dp)
+        SecondaryButton("Disconnect", onClick = actions::stopClient)
+        Gap(4.dp)
+        TextAction("Reconnect", onClick = actions::reconnectVpn)
+    } else {
+        LabeledField(
+            label = "Host address",
+            value = vm.clientIp.value,
+            onValueChange = { vm.clientIp.value = it.trim() },
+            keyboardType = KeyboardType.Decimal,
+            enabled = !hostActive,
+            placeholder = HOST_PROXY_IP
+        )
+        Gap(22.dp)
+        LabeledField(
+            label = "Port",
+            value = vm.clientPort.value,
+            onValueChange = { vm.clientPort.value = it.filter(Char::isDigit).take(5) },
+            keyboardType = KeyboardType.Number,
+            enabled = !hostActive,
+            placeholder = HOST_PROXY_PORT
+        )
+        Gap(30.dp)
+        PrimaryButton("Connect", onClick = actions::connectClient, enabled = !hostActive)
+    }
+
+    Gap(48.dp)
+    Column(Modifier.fillMaxWidth().hairlines(top = true, bottom = false).padding(top = 19.dp)) {
+        Eyebrow("Before you connect")
+        Text(
+            "1. Join the host phone’s Wi-Fi network in Android settings.\n" +
+                "2. Enter the proxy address and port shown on the host.\n" +
+                "3. Tap Connect and approve Android’s VPN request.",
+            style = AppText.Body
+        )
+    }
+}
+
+@Composable
+fun SettingsScreen(vm: MainViewModel, actions: MainActions, onBack: () -> Unit) {
+    val saved = vm.savedCredentials.value
+    var ssid by rememberSaveable { mutableStateOf(saved.ssid) }
+    var password by rememberSaveable { mutableStateOf(saved.password) }
+    var revealed by rememberSaveable { mutableStateOf(false) }
+    var dnsText by rememberSaveable { mutableStateOf(ClientDnsSettings.format(vm.dnsServers.value)) }
     val passwordValid = HotspotCredentials.isValidPassword(password)
-    var dnsText by remember { mutableStateOf(ClientDnsSettings.format(ClientDnsSettings.load(context))) }
     val dnsServers = ClientDnsSettings.parse(dnsText)
 
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Wi-Fi Settings", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
-                value = ssid,
-                onValueChange = { ssid = it },
-                label = { Text("SSID") },
-                modifier = Modifier.fillMaxWidth(),
-                leadingIcon = { Icon(Icons.Default.Wifi, null) },
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true
+    Column(Modifier.fillMaxSize().statusBarsPadding()) {
+        Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = AppColors.TextPrimary)
+            }
+            Spacer(Modifier.width(4.dp))
+            Text("Settings", style = AppText.Brand, color = AppColors.TextPrimary)
+        }
+        Column(
+            Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .navigationBarsPadding()
+                .imePadding()
+                .padding(horizontal = 24.dp)
+        ) {
+            Gap(16.dp)
+            Eyebrow("Share mode")
+            Text("Hotspot network", style = AppText.Section)
+            Gap(6.dp)
+            Text(
+                "The Wi-Fi network other devices join. Saving restarts sharing if it is running.",
+                style = AppText.Body
             )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
+            Gap(20.dp)
+            LabeledField(label = "Network name", value = ssid, onValueChange = { ssid = it })
+            Gap(20.dp)
+            LabeledField(
+                label = "Password",
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password") },
-                modifier = Modifier.fillMaxWidth(),
-                leadingIcon = { Icon(Icons.Default.Lock, null) },
-                trailingIcon = {
-                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(
-                            if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (passwordVisible) "Hide password" else "Show password"
-                        )
-                    }
-                },
-                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                secret = true,
+                revealed = revealed,
+                onToggleReveal = { revealed = !revealed },
                 isError = !passwordValid,
-                supportingText = {
-                    if (!passwordValid) {
-                        Text(
-                            "${HotspotCredentials.MIN_PASSWORD_LENGTH}-${HotspotCredentials.MAX_PASSWORD_LENGTH} " +
-                                "characters (letters, digits, symbols)"
-                        )
-                    }
-                },
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true
+                supportingText = if (passwordValid) null else
+                    "${HotspotCredentials.MIN_PASSWORD_LENGTH}–${HotspotCredentials.MAX_PASSWORD_LENGTH} characters: letters, digits or symbols"
             )
+            TextAction("Generate a new password", onClick = {
+                password = HotspotCredentials.generatePassword()
+                revealed = true
+            })
 
-            Spacer(modifier = Modifier.height(20.dp))
-            Text("Connect (Client) DNS", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
+            Gap(36.dp)
+            Eyebrow("Connect mode")
+            Text("DNS servers", style = AppText.Section)
+            Gap(6.dp)
+            Text("Used for name lookups while the VPN is on. Takes effect the next time you connect.", style = AppText.Body)
+            Gap(20.dp)
+            LabeledField(
+                label = "Servers",
                 value = dnsText,
                 onValueChange = { dnsText = it },
-                label = { Text("DNS servers") },
-                modifier = Modifier.fillMaxWidth(),
-                leadingIcon = { Icon(Icons.Default.Dns, null) },
+                keyboardType = KeyboardType.Uri,
                 isError = dnsServers == null,
-                supportingText = {
-                    Text(
-                        if (dnsServers == null) {
-                            "1-${ClientDnsSettings.MAX_SERVERS} IPv4 addresses, separated by commas"
-                        } else {
-                            "Used the next time you start the VPN"
-                        }
-                    )
-                },
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true
+                supportingText = if (dnsServers == null)
+                    "1–${ClientDnsSettings.MAX_SERVERS} IPv4 addresses, separated by commas" else null
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Button(
+            Gap(32.dp)
+            PrimaryButton(
+                "Save",
+                enabled = passwordValid && dnsServers != null,
                 onClick = {
                     if (dnsServers != null) {
                         actions.saveSettings(
@@ -261,262 +336,9 @@ fun SettingsScreen(vm: MainViewModel, actions: MainActions) {
                             dnsServers
                         )
                     }
-                },
-                enabled = passwordValid && dnsServers != null,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.background
-                ),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Icon(Icons.Default.Save, null)
-                Spacer(Modifier.width(8.dp))
-                Text("SAVE", fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
-            }
-        }
-    }
-}
-
-
-@Composable
-fun HostModeView(vm: MainViewModel, actions: MainActions) {
-    Text("Share your connection", modifier = Modifier.fillMaxWidth(), fontSize = 24.sp, fontWeight = FontWeight.Bold)
-    Text("Use this phone as the host for other devices.", modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.onSurfaceVariant)
-    Spacer(modifier = Modifier.height(20.dp))
-    StatusCard(
-        title = "Hotspot Sharing",
-        isActive = vm.isHostRunning.value,
-        activeColor = Color(0xFF4CAF50),
-        icon = Icons.Default.CellTower
-    )
-
-    Spacer(modifier = Modifier.height(16.dp))
-
-    SetupSteps(listOf(
-        "Turn on mobile data and Wi-Fi on this phone.",
-        "Start sharing, then copy the network and proxy details below.",
-        "On each client, join this Wi-Fi network and start its VPN."
-    ))
-    Spacer(modifier = Modifier.height(16.dp))
-
-    if (vm.isClientRunning.value) {
-        ConflictCard(message = "VPN Client is currently active. You cannot share while connected to another proxy.")
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        // FIXED: Uses the theme surface color instead of hardcoded CardPurple
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Wi-Fi settings", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Wi-Fi Band:", modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface)
-                FilterChip(
-                    selected = vm.selectedBand.intValue == 1,
-                    onClick = { actions.selectBand(1) },
-                    label = { Text("2.4 GHz") },
-                    enabled = !vm.isHostRunning.value && !vm.isClientRunning.value,
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primary,
-                        selectedLabelColor = MaterialTheme.colorScheme.background, // Adapts to Light or Dark
-                        labelColor = MaterialTheme.colorScheme.onSurface      // Adapts to Black or White text
-                    )
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                FilterChip(
-                    selected = vm.selectedBand.intValue == 2,
-                    onClick = { actions.selectBand(2) },
-                    label = { Text("5 GHz") },
-                    enabled = !vm.isHostRunning.value && !vm.isClientRunning.value,
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primary,
-                        selectedLabelColor = MaterialTheme.colorScheme.background, // Adapts to Light or Dark
-                        labelColor = MaterialTheme.colorScheme.onSurface      // Adapts to Black or White text
-                    )
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (!vm.isHostRunning.value) {
-                Button(
-                    onClick = { actions.startHost() },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,    // Dynamic
-                        contentColor = MaterialTheme.colorScheme.background    // Dynamic
-                    ),
-                    shape = RoundedCornerShape(16.dp),
-                    enabled = !vm.isClientRunning.value
-                ) {
-                    Icon(Icons.Default.PlayArrow, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("START SERVICE", fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
                 }
-            } else {
-                Button(
-                    onClick = { actions.stopHost() },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFB00020), // Standard Red
-                        contentColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Icon(Icons.Default.Stop, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("STOP SERVICE", fontWeight = FontWeight.ExtraBold)
-                }
-            }
-        }
-    }
-
-    // Host Info Card (Update for contrast)
-    AnimatedVisibility(visible = vm.hostInfoState.value != null) {
-        vm.hostInfoState.value?.let { info ->
-            Spacer(modifier = Modifier.height(16.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (isSystemInDarkTheme()) Color(0xFF1B2E1C) else Color(0xFFE8F5E9)
-                ),
-                border = BorderStroke(1.dp, Color(0xFF4CAF50))
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF4CAF50))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Details for every client", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                    }
-                    Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFF4CAF50).copy(alpha = 0.3f))
-                    InfoRow(label = "SSID", value = info.ssid)
-                    InfoRow(label = "Password", value = info.pass)
-                    InfoRow(label = "Proxy IP", value = info.ip)
-                    InfoRow(label = "Proxy Port", value = info.port)
-                }
-            }
-        }
-    }
-}
-
-
-@Composable
-fun ClientModeView(vm: MainViewModel, actions: MainActions) {
-    Text("Connect to a host", modifier = Modifier.fillMaxWidth(), fontSize = 24.sp, fontWeight = FontWeight.Bold)
-    Text("Route this device through the host phone.", modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.onSurfaceVariant)
-    Spacer(modifier = Modifier.height(20.dp))
-    StatusCard(
-        title = "VPN Tunnel",
-        isActive = vm.isClientRunning.value,
-        activeColor = Color(0xFF2196F3),
-        icon = Icons.Default.Security
-    )
-
-    Spacer(modifier = Modifier.height(16.dp))
-
-    SetupSteps(listOf(
-        "Join the host phone's Wi-Fi network in Android settings.",
-        "Enter the proxy IP and port shown on the host.",
-        "Start the VPN and approve Android's connection prompt."
-    ))
-    Spacer(modifier = Modifier.height(16.dp))
-
-    if (vm.isHostRunning.value) {
-        ConflictCard(message = "Hotspot Sharing is currently active. You cannot start a VPN while sharing your own connection.")
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        // FIXED: Uses the theme surface color
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Host address", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = vm.clientIp.value,
-                onValueChange = { vm.clientIp.value = it },
-                label = { Text("Host IP Address") },
-                modifier = Modifier.fillMaxWidth(),
-                leadingIcon = { Icon(Icons.Default.Lan, null) },
-                shape = RoundedCornerShape(12.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                singleLine = true,
-                enabled = !vm.isClientRunning.value && !vm.isHostRunning.value
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedTextField(
-                value = vm.clientPort.value,
-                onValueChange = { vm.clientPort.value = it },
-                label = { Text("Port") },
-                modifier = Modifier.fillMaxWidth(),
-                leadingIcon = { Icon(Icons.Default.Numbers, null) },
-                shape = RoundedCornerShape(12.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                enabled = !vm.isClientRunning.value && !vm.isHostRunning.value
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (!vm.isClientRunning.value) {
-                Button(
-                    onClick = { actions.connectClient() },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.background
-                    ),
-                    shape = RoundedCornerShape(16.dp),
-                    enabled = !vm.isHostRunning.value
-                ) {
-                    Icon(Icons.Default.PlayArrow, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("START VPN", fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
-                }
-            } else {
-                Button(
-                    onClick = { actions.stopClient() },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFB00020),
-                        contentColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Icon(Icons.Default.Stop, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("STOP VPN", fontWeight = FontWeight.ExtraBold)
-                }
-            }
-        }
-    }
-
-    if (vm.isClientRunning.value) {
-        Spacer(modifier = Modifier.height(8.dp))
-        OutlinedButton(
-            onClick = { actions.reconnectVpn() },
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = MaterialTheme.colorScheme.primary
-            ),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Icon(Icons.Default.Refresh, null)
-            Spacer(Modifier.width(8.dp))
-            Text("RECONNECT VPN", fontWeight = FontWeight.Bold)
+            Gap(32.dp)
         }
     }
 }

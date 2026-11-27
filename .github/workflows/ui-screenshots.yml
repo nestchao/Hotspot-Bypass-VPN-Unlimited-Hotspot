@@ -1,0 +1,52 @@
+name: UI Screenshots
+
+# Renders every Android screen state with Robolectric (ScreenshotTest) and
+# commits the PNGs in app/src/test/screenshots back to the branch, so UI
+# changes can be reviewed as images in the diff.
+on:
+  push:
+    branches: ['claude/**']
+    paths:
+      - 'app/src/main/java/**/Screens.kt'
+      - 'app/src/main/java/**/Components.kt'
+      - 'app/src/main/java/**/Theme.kt'
+      - 'app/src/main/java/**/MainViewModel.kt'
+      - 'app/src/test/java/**/ScreenshotTest.kt'
+      - '.github/workflows/ui-screenshots.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ui-screenshots-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Render screens
+        run: ./gradlew --no-daemon testDebugUnitTest --tests '*ScreenshotTest' -PrecordScreenshots
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-screenshots
+          path: app/src/test/screenshots/*.png
+      - name: Commit changed screenshots
+        run: |
+          git add app/src/test/screenshots
+          if git diff --cached --quiet; then
+            echo "Screenshots unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update UI screenshots"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
